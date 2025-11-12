@@ -2,7 +2,6 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
-
 :root {
   --background: rgb(245, 241, 230);
   --foreground: rgb(74, 63, 53);
@@ -160,3 +159,154 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Vintage paper theme extensions */
+@layer base {
+  html {
+    font-family: var(--font-serif);
+    letter-spacing: var(--tracking-normal);
+  }
+
+  body {
+    background-color: var(--background);
+    background-image:
+      radial-gradient(ellipse at 20% 10%, hsl(40 30% 95% / 0.65) 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 0%, hsl(35 25% 92% / 0.55) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 120%, hsl(30 25% 88% / 0.55) 0%, transparent 60%),
+      repeating-linear-gradient(180deg, hsl(35 30% 60% / 0.06) 0 2px, transparent 2px 32px);
+    background-blend-mode: multiply;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 25%, white);
+    color: var(--primary-foreground);
+  }
+
+  a {
+    color: var(--primary);
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+    transition: color 150ms ease, text-decoration-color 150ms ease;
+  }
+
+  a:hover {
+    color: color-mix(in oklab, var(--primary) 90%, black);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in oklab, var(--primary) 60%, transparent);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
+    color: var(--foreground);
+  }
+
+  h1 { font-size: clamp(2rem, 3vw, 2.5rem); }
+  h2 { font-size: clamp(1.5rem, 2.5vw, 2rem); }
+  h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
+
+  hr {
+    border: none;
+    height: 1px;
+    background-image: linear-gradient(to right, transparent, var(--border), transparent);
+  }
+
+  blockquote {
+    background: color-mix(in oklab, var(--accent) 35%, white);
+    border-left: 3px solid var(--accent);
+    padding: 0.75rem 1rem;
+    color: var(--accent-foreground);
+  }
+
+  code, pre {
+    font-family: var(--font-mono);
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+
+  pre {
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+@layer components {
+  /* Reusable paper surface */
+  .paper {
+    background-color: var(--card);
+    color: var(--card-foreground);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .paper-hover:hover {
+    box-shadow: var(--shadow-md);
+  }
+
+  /* Subtle torn edge mask */
+  .paper-edge {
+    -webkit-mask-image: radial-gradient(12px 8px at 0 0, transparent 8px, black 9px),
+      radial-gradient(12px 8px at 100% 0, transparent 8px, black 9px),
+      linear-gradient(black, black);
+    -webkit-mask-composite: source-over, source-over, source-over;
+    mask-image: radial-gradient(12px 8px at 0 0, transparent 8px, black 9px),
+      radial-gradient(12px 8px at 100% 0, transparent 8px, black 9px),
+      linear-gradient(black, black);
+    mask-composite: add;
+  }
+
+  /* Buttons */
+  button, .btn {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    border: 1px solid color-mix(in oklab, var(--primary) 70%, var(--border));
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-xs);
+    transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+  }
+
+  button:hover, .btn:hover {
+    background-color: color-mix(in oklab, var(--primary) 88%, black);
+    box-shadow: var(--shadow-sm);
+  }
+
+  button:active, .btn:active {
+    transform: translateY(1px);
+    box-shadow: var(--shadow-2xs);
+  }
+
+  /* Inputs */
+  input, select, textarea {
+    background-color: var(--input);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+
+  input:focus, select:focus, textarea:focus {
+    outline: 2px solid color-mix(in oklab, var(--ring) 55%, transparent);
+    outline-offset: 2px;
+    background-color: color-mix(in oklab, var(--input) 90%, white);
+  }
+
+  /* Cards/panels using sidebar tokens */
+  .sidebar-surface {
+    background-color: var(--sidebar);
+    color: var(--sidebar-foreground);
+    border: 1px solid var(--sidebar-border);
+    box-shadow: var(--shadow-xs);
+  }
+}
+
+@layer utilities {
+  .vintage-grain {
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, hsl(28 13% 20% / 0.05) 0, transparent 1px),
+      radial-gradient(1px 1px at 70% 40%, hsl(28 13% 20% / 0.05) 0, transparent 1px),
+      radial-gradient(1px 1px at 30% 80%, hsl(28 13% 20% / 0.05) 0, transparent 1px);
+    background-blend-mode: multiply;
+  }
+}
+

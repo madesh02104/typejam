@@ -1,14 +1,12 @@
 import * as Tone from "tone";
 import { INSTRUMENTS } from "./instruments";
 
-// Build and control a session that can play multiple recordings as clips on a shared Transport.
 export function createJamSession(recordingsById, onPlaybackEnd) {
-  /** @type {Map<string, { instrument: any, ready: boolean }>} */
   const engineByRecording = new Map();
-  /** @type {Tone.Part[]} */
+
   let parts = [];
   let started = false;
-  let stopScheduleId = null; // Track the scheduled stop event
+  let stopScheduleId = null;
 
   const ensureEngine = async (recordingId) => {
     let engine = engineByRecording.get(recordingId);
@@ -56,9 +54,8 @@ export function createJamSession(recordingsById, onPlaybackEnd) {
       if (Tone.context.state !== "running") await Tone.start();
       await Tone.loaded();
 
-      // Build parts for all clips
       clearParts();
-      let maxEndTime = 0; // Track the latest end time across all clips
+      let maxEndTime = 0;
 
       for (const clip of clips) {
         const rec = recordingsById.get(clip.recordingId);
@@ -78,11 +75,9 @@ export function createJamSession(recordingsById, onPlaybackEnd) {
           );
         }, events);
         part.loop = false;
-        // offset by clip start time on the transport
         part.start(clip.startTimeSec);
         parts.push(part);
 
-        // Calculate the end time of this clip
         const clipEndTime = clip.startTimeSec + (clip.durationSec || 0);
         maxEndTime = Math.max(maxEndTime, clipEndTime);
       }
@@ -92,28 +87,16 @@ export function createJamSession(recordingsById, onPlaybackEnd) {
         started = true;
       }
 
-      // Clear any previously scheduled stop
       clearScheduledStop();
 
-      // Schedule the Transport to stop at the end of the last clip
       if (maxEndTime > 0) {
         stopScheduleId = Tone.Transport.schedule(() => {
-          console.log(
-            "[TypeJam][jamSession] Playback complete, stopping at",
-            maxEndTime
-          );
           Tone.Transport.stop();
           started = false;
-          // Notify parent component that playback has ended
           if (onPlaybackEnd) {
             onPlaybackEnd();
           }
         }, maxEndTime);
-        console.log(
-          "[TypeJam][jamSession] Scheduled stop at",
-          maxEndTime,
-          "seconds"
-        );
       }
 
       Tone.Transport.start();

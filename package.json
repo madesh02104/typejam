@@ -1,5 +1,5 @@
 {
-  "name": "typejam",
+  "name": "tonejs-3",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -12,16 +12,18 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.544.0",
-    "next": "15.5.3",
+    "next": "15.5.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "tailwind-merge": "^3.3.1"
+    "soundfont-player": "^0.12.0",
+    "tailwind-merge": "^3.3.1",
+    "tone": "^15.1.22"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "eslint": "^9",
-    "eslint-config-next": "15.5.3",
+    "eslint-config-next": "15.5.0",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.8"
   }
