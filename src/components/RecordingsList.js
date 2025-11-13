@@ -1,16 +1,12 @@
-// Component to display and manage recordings
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import { createPlaybackEngine } from "../lib/playback";
 
 export default function RecordingsList({ recordings, onDelete, onClearAll }) {
-  // Track playback state per recording
   const [playbackStates, setPlaybackStates] = useState({});
-  // Keep playback engines in a ref to avoid recreation
   const enginesRef = useRef({});
 
-  // Cleanup engines on unmount
   useEffect(() => {
     return () => {
       Object.values(enginesRef.current).forEach((engine) => engine.dispose());
