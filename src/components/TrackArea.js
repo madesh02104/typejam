@@ -2,6 +2,46 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+const INSTRUMENT_COLORS = {
+  piano: {
+    bg: "rgba(6, 182, 212, 0.15)",
+    border: "1px solid rgba(6, 182, 212, 0.35)",
+    borderLeft: "3px solid rgb(6, 182, 212)",
+    text: "rgb(6, 182, 212)",
+    glow: "rgba(6,182,212,0.2)",
+  },
+  guitar: {
+    bg: "rgba(16, 185, 129, 0.15)",
+    border: "1px solid rgba(16, 185, 129, 0.35)",
+    borderLeft: "3px solid rgb(16, 185, 129)",
+    text: "rgb(16, 185, 129)",
+    glow: "rgba(16,185,129,0.2)",
+  },
+  bass: {
+    bg: "rgba(139, 92, 246, 0.15)",
+    border: "1px solid rgba(139, 92, 246, 0.35)",
+    borderLeft: "3px solid rgb(139, 92, 246)",
+    text: "rgb(139, 92, 246)",
+    glow: "rgba(139,92,246,0.2)",
+  },
+  violin: {
+    bg: "rgba(245, 158, 11, 0.15)",
+    border: "1px solid rgba(245, 158, 11, 0.35)",
+    borderLeft: "3px solid rgb(245, 158, 11)",
+    text: "rgb(245, 158, 11)",
+    glow: "rgba(245,158,11,0.2)",
+  },
+  drums: {
+    bg: "rgba(244, 63, 94, 0.15)",
+    border: "1px solid rgba(244, 63, 94, 0.35)",
+    borderLeft: "3px solid rgb(244, 63, 94)",
+    text: "rgb(244, 63, 94)",
+    glow: "rgba(244,63,94,0.2)",
+  },
+};
+
+const DEFAULT_COLORS = INSTRUMENT_COLORS.piano;
+
 export default function TrackArea({
   pxPerSec,
   numTracks,
@@ -18,14 +58,12 @@ export default function TrackArea({
 
   const onPointerDownClip = useCallback((e, clip) => {
     e.preventDefault();
-    const startX = e.clientX;
-    const startY = e.clientY;
     setDragState({
       clipId: clip.id,
       baseStartSec: clip.startTimeSec,
       baseTrack: clip.trackIndex,
-      originX: startX,
-      originY: startY,
+      originX: e.clientX,
+      originY: e.clientY,
     });
     boardRef.current?.setPointerCapture?.(e.pointerId);
   }, []);
@@ -73,13 +111,40 @@ export default function TrackArea({
 
   return (
     <div ref={boardRef} className="relative flex-1">
-      {/* Left gutter */}
       <div
-        className="absolute left-0 top-0 bottom-0 bg-secondary border-r"
-        style={{ width: leftGutterPx }}
-      />
+        className="absolute left-0 top-0 bottom-0"
+        style={{
+          width: leftGutterPx,
+          backgroundColor: "var(--secondary)",
+          borderRight: "1px solid var(--border)",
+          zIndex: 1,
+        }}
+      >
+        {Array.from({ length: numTracks }).map((_, i) => (
+          <div
+            key={i}
+            className="flex items-center justify-center"
+            style={{
+              height: rowHeightPx,
+              borderBottom: "1px solid var(--border)",
+            }}
+          >
+            <span
+              style={{
+                fontSize: 9,
+                fontFamily: "var(--font-mono)",
+                fontWeight: 600,
+                color: "var(--muted-foreground)",
+                letterSpacing: "0.06em",
+                opacity: 0.7,
+              }}
+            >
+              T{i + 1}
+            </span>
+          </div>
+        ))}
+      </div>
 
-      {/* Tracks and clips */}
       <div
         className="relative"
         style={{
@@ -90,48 +155,101 @@ export default function TrackArea({
         {Array.from({ length: numTracks }).map((_, trackIndex) => (
           <div
             key={trackIndex}
-            className="relative border-b"
-            style={{ height: rowHeightPx }}
+            className="relative"
+            style={{
+              height: rowHeightPx,
+              borderBottom: "1px solid var(--border)",
+            }}
           >
-            {/* Row background stripes */}
             <div
-              className={`absolute inset-0 ${
-                trackIndex % 2 === 0 ? "bg-card" : "bg-secondary"
-              }`}
+              className="absolute inset-0"
+              style={{
+                backgroundColor:
+                  trackIndex % 2 === 0 ? "var(--card)" : "var(--muted)",
+              }}
             />
-            {/* Clips on this row */}
-            {clipsByTrack[trackIndex]?.map((clip) => (
-              <div
-                key={clip.id}
-                className="absolute top-1 h-12 rounded-md text-primary-foreground text-xs px-2 py-1 cursor-move shadow"
-                style={{
-                  backgroundColor: "var(--primary)",
-                  left: clip.startTimeSec * pxPerSec,
-                  width: Math.max(12, clip.durationSec * pxPerSec),
-                }}
-                onPointerDown={(e) => onPointerDownClip(e, clip)}
-                title={`Start @ ${clip.startTimeSec.toFixed(2)}s`}
-              >
-                <div className="font-semibold truncate">
-                  {clip.name || clip.recordingId.slice(0, 6)}
-                </div>
-                <div className="opacity-80">{clip.durationSec.toFixed(2)}s</div>
-                <button
-                  className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-card text-foreground border grid place-items-center shadow hover:bg-secondary"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteClip?.(clip.id);
+
+            {clipsByTrack[trackIndex]?.map((clip) => {
+              const colors = INSTRUMENT_COLORS[clip.name] || DEFAULT_COLORS;
+              return (
+                <div
+                  key={clip.id}
+                  className="absolute group/clip"
+                  style={{
+                    top: 6,
+                    height: rowHeightPx - 14,
+                    left: clip.startTimeSec * pxPerSec,
+                    width: Math.max(14, clip.durationSec * pxPerSec),
+                    backgroundColor: colors.bg,
+                    border: colors.border,
+                    borderLeft: colors.borderLeft,
+                    borderRadius: "4px",
+                    boxShadow: `0 2px 8px ${colors.glow}`,
+                    cursor: "move",
                   }}
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                  }}
-                  title="Remove clip"
+                  onPointerDown={(e) => onPointerDownClip(e, clip)}
+                  title={`${clip.name} @ ${clip.startTimeSec.toFixed(2)}s`}
                 >
-                  ×
-                </button>
-              </div>
-            ))}
+                  <div
+                    className="truncate"
+                    style={{
+                      paddingLeft: 6,
+                      paddingTop: 3,
+                      fontSize: 10,
+                      fontFamily: "var(--font-mono)",
+                      fontWeight: 600,
+                      color: colors.text,
+                      letterSpacing: "0.02em",
+                      textTransform: "capitalize",
+                    }}
+                  >
+                    {clip.name || clip.recordingId.slice(0, 6)}
+                  </div>
+                  <div
+                    style={{
+                      paddingLeft: 6,
+                      fontSize: 9,
+                      fontFamily: "var(--font-mono)",
+                      color: colors.text,
+                      opacity: 0.6,
+                    }}
+                  >
+                    {clip.durationSec.toFixed(2)}s
+                  </div>
+
+                  <button
+                    className="absolute opacity-0 group-hover/clip:opacity-100 transition-opacity duration-150 flex items-center justify-center"
+                    style={{
+                      top: -6,
+                      right: -6,
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      backgroundColor: "var(--destructive)",
+                      color: "white",
+                      fontSize: 9,
+                      fontWeight: 700,
+                      border: "1.5px solid var(--background)",
+                      boxShadow: "0 0 6px rgba(244,63,94,0.5)",
+                      padding: 0,
+                      lineHeight: 1,
+                      zIndex: 5,
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteClip?.(clip.id);
+                    }}
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
+                    title="Remove clip"
+                  >
+                    ×
+                  </button>
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>

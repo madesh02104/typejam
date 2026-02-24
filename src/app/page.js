@@ -1,22 +1,15 @@
 "use client";
-// Page component: connects the UI (dropdown + typing) to the instrument engine.
-// Flow summary:
-// 1) User picks an instrument from the <select>
-// 2) We construct that instrument via INSTRUMENTS[...]()
-// 3) We wait for Tone.Sampler buffers to load (ensureReady)
-// 4) On each keydown, we map the key to a note + row position
-// 5) We call instrument.play(note, dur, time, velocity, row, i, len)
 
 import { useEffect, useRef, useState } from "react";
 import * as Tone from "tone";
-import { INSTRUMENTS } from "../lib/instruments"; // registry of instrument factories
-import { noteMap, indexMap, drumKeyToNote } from "../lib/keys"; // keyboard -> notes/rows
+import { INSTRUMENTS } from "../lib/instruments";
+import { noteMap, indexMap, drumKeyToNote } from "../lib/keys";
 import { createEmptyRecording } from "../lib/recording";
 import {
   saveRecordings,
   loadRecordings,
   clearRecordings,
-} from "../lib/storage"; // localStorage persistence
+} from "../lib/storage";
 import RecordingsList from "../components/RecordingsList";
 import JamBoard from "../components/JamBoard";
 import TransportControls from "../components/TransportControls";
@@ -24,69 +17,44 @@ import { AUDIO_API_URL } from "../lib/config";
 import { createJamSession } from "../lib/jamSession";
 
 export default function Page() {
-  // Which instrument is currently selected in the UI
   const [selected, setSelected] = useState("piano");
-  // The current instrument instance (Sampler engine + FX)
   const instRef = useRef(null);
-  // True when the instrument has loaded all samples and is ready to play
   const [ready, setReady] = useState(false);
 
-  // Recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingStartTime, setRecordingStartTime] = useState(null);
-  // Use useRef for currentRecording to avoid state updates during recording
   const currentRecordingRef = useRef(createEmptyRecording());
   const [recordings, setRecordings] = useState([]);
-  // Jam board state
   const [clips, setClips] = useState([]);
   const [pxPerSec, setPxPerSec] = useState(100);
   const [snapSec, setSnapSec] = useState(0.5);
   const [isPlaying, setIsPlaying] = useState(false);
   const jamSessionRef = useRef(null);
 
-  // ============================================================================
-  // LOAD RECORDINGS FROM LOCALSTORAGE ON PAGE LOAD
-  // ============================================================================
-
   useEffect(() => {
-    // Load saved recordings when component mounts
     const savedRecordings = loadRecordings();
     setRecordings(savedRecordings);
-    console.log(
-      `[TypeJam][page] Loaded ${savedRecordings.length} recordings from storage`
-    );
-  }, []); // Empty dependency array = run once on mount
-
-  // ============================================================================
-  // SAVE RECORDINGS TO LOCALSTORAGE WHENEVER RECORDINGS CHANGE
-  // ============================================================================
+  }, []);
 
   useEffect(() => {
-    // Save recordings to localStorage whenever the recordings array changes
-    // This ensures data persists across page reloads
     if (recordings.length > 0) {
       saveRecordings(recordings);
     }
-  }, [recordings]); // Runs whenever recordings array changes
+  }, [recordings]);
 
-  // Start/stop recording
   const toggleRecording = () => {
     if (!isRecording) {
-      // Start new recording
       currentRecordingRef.current = createEmptyRecording();
       setRecordingStartTime(Date.now());
       setIsRecording(true);
     } else {
-      // Stop and finalize
       setIsRecording(false);
       const final = {
         ...currentRecordingRef.current,
         duration: Date.now() - recordingStartTime,
       };
-      // Add to recordings list if it has notes
       if (final.notes.length > 0) {
         setRecordings((list) => {
-          // Ensure no duplicate IDs in the list
           const existingIds = new Set(list.map((r) => r.id));
           while (existingIds.has(final.id)) {
             final.id = crypto.randomUUID();
@@ -99,35 +67,22 @@ export default function Page() {
     }
   };
 
-  // Delete a recording
   const handleDeleteRecording = (recordingId) => {
-    console.log("[TypeJam][page] Deleting recording:", recordingId);
-    setRecordings((list) => {
-      const updatedList = list.filter((r) => r.id !== recordingId);
-      // The useEffect will automatically save the updated list to localStorage
-      return updatedList;
-    });
+    setRecordings((list) => list.filter((r) => r.id !== recordingId));
   };
 
-  // Jam board: helpers
   const recordingsById = useRef(new Map());
   useEffect(() => {
     const map = new Map();
     for (const r of recordings) map.set(r.id, r);
     recordingsById.current = map;
-    // Reset jam session when recordings change so it uses the new map
     if (jamSessionRef.current) {
       jamSessionRef.current.dispose();
       jamSessionRef.current = null;
     }
   }, [recordings]);
 
-  const handleCreateClip = ({
-    recordingId,
-    trackIndex,
-    startTimeSec,
-    durationSec,
-  }) => {
+  const handleCreateClip = ({ recordingId, trackIndex, startTimeSec, durationSec }) => {
     const newClip = {
       id: crypto.randomUUID(),
       recordingId,
@@ -140,9 +95,7 @@ export default function Page() {
   };
 
   const handleUpdateClip = (clipId, patch) => {
-    setClips((prev) =>
-      prev.map((c) => (c.id === clipId ? { ...c, ...patch } : c))
-    );
+    setClips((prev) => prev.map((c) => (c.id === clipId ? { ...c, ...patch } : c)));
   };
 
   const handleDeleteClip = (clipId) => {
@@ -150,16 +103,12 @@ export default function Page() {
   };
 
   const handlePlaybackEnd = () => {
-    console.log("[TypeJam][page] Playback ended, updating UI");
     setIsPlaying(false);
   };
 
   const ensureJamSession = () => {
     if (!jamSessionRef.current) {
-      jamSessionRef.current = createJamSession(
-        recordingsById.current,
-        handlePlaybackEnd
-      );
+      jamSessionRef.current = createJamSession(recordingsById.current, handlePlaybackEnd);
     }
     return jamSessionRef.current;
   };
@@ -181,11 +130,8 @@ export default function Page() {
     setIsPlaying(false);
   };
 
-  // Build jam JSON and send to backend to download WAV (fallback MIDI)
   const handleDownload = async () => {
-    const recordingsMap = Object.fromEntries(
-      Array.from(recordingsById.current.entries())
-    );
+    const recordingsMap = Object.fromEntries(Array.from(recordingsById.current.entries()));
     const payload = {
       schemaVersion: 1,
       bpm: 120,
@@ -210,7 +156,6 @@ export default function Page() {
       a.remove();
       URL.revokeObjectURL(url);
     } catch (e) {
-      console.warn("WAV download failed, falling back to MIDI", e);
       try {
         const res = await fetch(`${AUDIO_API_URL}/api/convert?format=midi`, {
           method: "POST",
@@ -233,90 +178,50 @@ export default function Page() {
     }
   };
 
-  // Clear all recordings
   const handleClearAllRecordings = () => {
     if (recordings.length === 0) return;
-
     const confirmed = window.confirm(
-      `Are you sure you want to delete all ${recordings.length} recordings? This cannot be undone.`
+      `Delete all ${recordings.length} recordings? This cannot be undone.`
     );
-
     if (confirmed) {
-      console.log("[TypeJam][page] Clearing all recordings");
       setRecordings([]);
-      clearRecordings(); // Clear from localStorage immediately
+      clearRecordings();
     }
   };
 
-  // (Re)create instrument when selection changes
   useEffect(() => {
-    // Load instrument whenever selection changes
     let cancelled = false;
     const load = async () => {
-      // Dispose previous instrument to free audio resources
       if (instRef.current) instRef.current.dispose();
       const factory = INSTRUMENTS[selected];
-      console.groupCollapsed("[TypeJam][page] create instrument");
-      console.log({ selected, factory: typeof factory });
-      console.groupEnd();
-      // Create and store the new instrument
       const inst = factory();
       instRef.current = inst;
-      // Wait for all Sampler buffers to finish loading
       await inst.ensureReady();
-      console.log("[TypeJam][page] instrument ready");
       if (!cancelled) setReady(true);
     };
-    // UI shows Loading... until ready flips to true
     setReady(false);
     load();
-    return () => {
-      // Prevent state update if component unmounts during async load
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [selected]);
 
-  // Global key handler: map pressed key -> note + row/index, then play
   useEffect(() => {
-    // Track which keys are currently held down to prevent keyboard repeat retriggering
     const heldKeys = new Set();
-    // Track note start times for recording duration calculation
     const noteStartTimes = new Map();
 
     const onKeyDown = async (e) => {
       if (!ready) return;
-      // Some browsers require a user gesture to start the audio context
       if (Tone.context.state !== "running") await Tone.start();
       const k = e.key.toLowerCase();
-
-      // Prevent retriggering on keyboard repeat
       if (heldKeys.has(k)) return;
       heldKeys.add(k);
 
-      console.groupCollapsed("[TypeJam][page] keydown");
-      console.log({ key: k, selected });
-
-      // Common data for both drums and pitched
       let noteData = null;
 
       if (selected === "drums") {
-        // For drums: key -> pseudo-note (e.g., C1) selecting the one-shot sample
-        // Drums use one-shot samples, so keep the original behavior
         const note = drumKeyToNote.get(k);
         const info = indexMap.get(k);
-        console.log({ drumNote: note, drumInfo: info });
         if (note && info) {
-          instRef.current.play(
-            note,
-            "8n",
-            undefined,
-            0.95,
-            info.row,
-            info.i,
-            info.len
-          );
-
-          // Capture drum note if recording
+          instRef.current.play(note, "8n", undefined, 0.95, info.row, info.i, info.len);
           if (isRecording) {
             noteData = {
               instrument: selected,
@@ -331,22 +236,10 @@ export default function Page() {
           }
         }
       } else {
-        // For pitched instruments: key -> musical note (e.g., C4)
         const m = noteMap.get(k);
-        console.log({ pitchedMap: m, pitchedInfo: indexMap.get(k) });
         if (m) {
           const info = indexMap.get(k);
-          // Use triggerAttack for sustain (will be released on keyup)
-          instRef.current.triggerAttack(
-            m.note,
-            undefined,
-            0.9,
-            m.row,
-            info?.i ?? 0,
-            info?.len ?? 1
-          );
-
-          // Capture pitched note if recording (duration will be calculated on keyup)
+          instRef.current.triggerAttack(m.note, undefined, 0.9, m.row, info?.i ?? 0, info?.len ?? 1);
           if (isRecording) {
             const now = Date.now();
             noteStartTimes.set(k, now);
@@ -357,58 +250,36 @@ export default function Page() {
               i: info?.i ?? 0,
               len: info?.len ?? 1,
               timestamp: now - recordingStartTime,
-              duration: "8n", // Will be updated on keyup
+              duration: "8n",
               velocity: 0.9,
             };
           }
         }
       }
 
-      // Add note to recording if captured
       if (isRecording && noteData) {
-        console.log("[TypeJam][recording] captured note", noteData);
         currentRecordingRef.current = {
           ...currentRecordingRef.current,
           instrument: selected,
           notes: [...currentRecordingRef.current.notes, noteData],
         };
       }
-
-      console.groupEnd();
     };
 
     const onKeyUp = (e) => {
       const k = e.key.toLowerCase();
-
-      // Only process if the key was held
       if (!heldKeys.has(k)) return;
       heldKeys.delete(k);
 
-      console.groupCollapsed("[TypeJam][page] keyup");
-      console.log({ key: k, selected });
-
-      if (selected === "drums") {
-        // Drums are one-shot, no release needed
-      } else {
-        // For pitched instruments: release the sustained note
+      if (selected !== "drums") {
         const m = noteMap.get(k);
         if (m) {
           const info = indexMap.get(k);
-          instRef.current.triggerRelease(
-            m.note,
-            undefined,
-            m.row,
-            info?.i ?? 0,
-            info?.len ?? 1
-          );
-
-          // Update recording duration if recording
+          instRef.current.triggerRelease(m.note, undefined, m.row, info?.i ?? 0, info?.len ?? 1);
           if (isRecording && noteStartTimes.has(k)) {
             const startTime = noteStartTimes.get(k);
             const duration = Date.now() - startTime;
             noteStartTimes.delete(k);
-
-            // Find and update the last note with this key
             const notes = currentRecordingRef.current.notes;
             for (let i = notes.length - 1; i >= 0; i--) {
               if (notes[i].note === m.note && notes[i].duration === "8n") {
@@ -419,8 +290,6 @@ export default function Page() {
           }
         }
       }
-
-      console.groupEnd();
     };
 
     window.addEventListener("keydown", onKeyDown);
@@ -431,45 +300,112 @@ export default function Page() {
     };
   }, [selected, ready, isRecording, recordingStartTime]);
 
-  // Render: instrument selector + readiness + brief usage hint
   return (
-    <main className="p-4 h-screen w-screen box-border">
-      <div className="paper p-4 paper-hover">
-        <h1 className="text-xl font-semibold mb-3">Type to play</h1>
-        <div className="flex gap-4 items-center">
-          <label>
-            Instrument:
-            <select
-              value={selected}
-              onChange={(e) => setSelected(e.target.value)}
-              className="ml-2 px-2 py-1"
-            >
-              <option value="piano">Piano</option>
-              <option value="guitar">Guitar</option>
-              <option value="bass">Bass</option>
-              <option value="violin">Violin</option>
-              <option value="drums">Drums</option>
-            </select>
-          </label>
+    <main className="p-3 h-screen w-screen box-border flex flex-col gap-3 overflow-hidden">
+      <div className="paper flex items-center gap-4 px-4 py-3 flex-shrink-0">
+        <div className="flex-shrink-0 select-none">
+          <h1
+            className="text-xl font-bold leading-none"
+            style={{
+              background: "linear-gradient(135deg, rgb(6, 182, 212) 0%, rgb(124, 58, 237) 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
+          >
+            TypeJam
+          </h1>
+          <p
+            className="text-xs mt-0.5"
+            style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-mono)" }}
+          >
+            play music by typing
+          </p>
+        </div>
 
+        <div className="w-px h-8 flex-shrink-0" style={{ backgroundColor: "var(--border)" }} />
+
+        <label className="flex items-center gap-2.5 flex-shrink-0">
+          <span className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
+            Instrument
+          </span>
+          <select
+            value={selected}
+            onChange={(e) => setSelected(e.target.value)}
+            className="px-2.5 py-1.5 text-sm font-semibold rounded-md"
+            style={{ backgroundColor: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+          >
+            <option value="piano">Piano</option>
+            <option value="guitar">Guitar</option>
+            <option value="bass">Bass</option>
+            <option value="violin">Violin</option>
+            <option value="drums">Drums</option>
+          </select>
+        </label>
+
+        <div className="w-px h-8 flex-shrink-0" style={{ backgroundColor: "var(--border)" }} />
+
+        <div className="flex items-center gap-2.5 flex-shrink-0">
           <button
             onClick={toggleRecording}
             disabled={!ready}
-            className={`w-6 h-6 rounded-full border ${
-              isRecording ? "bg-destructive" : "bg-card"
-            }`}
+            className="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0"
+            style={{
+              backgroundColor: isRecording ? "var(--destructive)" : "transparent",
+              border: `2px solid ${isRecording ? "var(--destructive)" : "var(--border)"}`,
+              boxShadow: isRecording ? "0 0 0 0 rgba(244,63,94,0.7)" : "none",
+              animation: isRecording ? "pulse-record 1.1s ease-in-out infinite" : "none",
+            }}
             title={isRecording ? "Stop Recording" : "Start Recording"}
-          />
+          >
+            {isRecording ? (
+              <span
+                className="block rounded-sm"
+                style={{ width: 12, height: 12, backgroundColor: "white" }}
+              />
+            ) : (
+              <span
+                className="block rounded-full"
+                style={{ width: 14, height: 14, backgroundColor: "var(--destructive)" }}
+              />
+            )}
+          </button>
+          <span
+            className="text-xs font-semibold tracking-widest select-none"
+            style={{
+              color: isRecording ? "var(--destructive)" : "var(--muted-foreground)",
+              fontFamily: "var(--font-mono)",
+            }}
+          >
+            {isRecording ? "REC ●" : "REC"}
+          </span>
         </div>
 
-        <p className="text-sm mt-2">{ready ? "Ready" : "Loading..."}</p>
-        <p className="text-sm">
-          Letter keys only: Q–P, A–L, Z–M. Drums: Z–M, J/K.
-        </p>
+        <div className="w-px h-8 flex-shrink-0" style={{ backgroundColor: "var(--border)" }} />
+
+        <span
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0"
+          style={{
+            backgroundColor: ready ? "rgba(16,185,129,0.12)" : "rgba(245,158,11,0.12)",
+            color: ready ? "rgb(52,211,153)" : "rgb(251,191,36)",
+            border: `1px solid ${ready ? "rgba(16,185,129,0.3)" : "rgba(245,158,11,0.3)"}`,
+          }}
+        >
+          <span
+            className="w-1.5 h-1.5 rounded-full inline-block"
+            style={{
+              backgroundColor: ready ? "rgb(52,211,153)" : "rgb(251,191,36)",
+              animation: !ready ? "dot-blink 1s ease-in-out infinite" : "none",
+            }}
+          />
+          {ready ? "Ready" : "Loading…"}
+        </span>
+
+        
       </div>
 
-      <div className="mt-4 grid grid-cols-[340px_1fr] gap-4 h-[calc(100vh-140px)]">
-        <div className="overflow-auto paper p-3">
+      <div className="flex-1 grid grid-cols-[340px_1fr] gap-3 min-h-0">
+        <div className="overflow-auto paper p-3 min-h-0">
           <RecordingsList
             recordings={recordings}
             onDelete={handleDeleteRecording}
@@ -477,7 +413,7 @@ export default function Page() {
             currentInstrument={selected}
           />
         </div>
-        <div className="flex flex-col h-full paper p-3">
+        <div className="flex flex-col paper p-3 min-h-0">
           <TransportControls
             isPlaying={isPlaying}
             onPlayPause={onPlayPause}
@@ -488,7 +424,7 @@ export default function Page() {
             onChangeSnapSec={setSnapSec}
             onDownload={handleDownload}
           />
-          <div className="mt-2 flex-1">
+          <div className="mt-2 flex-1 min-h-0 overflow-hidden rounded-md">
             <JamBoard
               clips={clips}
               onCreateClip={handleCreateClip}

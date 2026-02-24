@@ -23,25 +23,60 @@ export default function TimelineRuler({
   }, [pxPerSec, leftGutterPx, totalSec]);
 
   return (
-    <div className="relative w-full" style={{ height: heightPx }}>
+    <div
+      className="relative w-full"
+      style={{
+        height: heightPx,
+        backgroundColor: "var(--secondary)",
+        borderBottom: "1px solid var(--border)",
+      }}
+    >
       <div
-        className="absolute left-0 top-0 bottom-0 bg-secondary border-r"
-        style={{ width: leftGutterPx }}
+        className="absolute left-0 top-0 bottom-0"
+        style={{
+          width: leftGutterPx,
+          backgroundColor: "var(--secondary)",
+          borderRight: "1px solid var(--border)",
+          zIndex: 1,
+        }}
       />
-      <div className="absolute inset-0 border-b bg-card" />
+
       {minor.map((m, idx) => (
         <div
           key={`m-${idx}`}
           className="absolute"
-          style={{ left: m.x, top: 0 }}
-        >
-          <div className="w-px bg-border" style={{ height: heightPx * 0.5 }} />
-        </div>
+          style={{
+            left: m.x,
+            top: heightPx * 0.6,
+            width: 1,
+            height: heightPx * 0.4,
+            backgroundColor: "var(--border)",
+          }}
+        />
       ))}
+
       {major.map((t) => (
         <div key={t.sec} className="absolute" style={{ left: t.x, top: 0 }}>
-          <div className="w-px bg-border" style={{ height: heightPx }} />
-          <div className="absolute -translate-x-1/2 top-0 text-[10px] text-muted-foreground select-none">
+          <div
+            style={{
+              width: 1,
+              height: heightPx,
+              backgroundColor: "rgba(40,40,64,0.9)",
+            }}
+          />
+          <div
+            className="absolute select-none"
+            style={{
+              top: 4,
+              left: 3,
+              fontSize: 9,
+              fontFamily: "var(--font-mono)",
+              fontWeight: 500,
+              color: "var(--muted-foreground)",
+              letterSpacing: "0.04em",
+              whiteSpace: "nowrap",
+            }}
+          >
             {t.sec}s
           </div>
         </div>
