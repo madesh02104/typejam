@@ -2,19 +2,49 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPlaybackEngine } from "../lib/playback";
+import styles from "./InfoPanel.module.css";
 
 const INSTRUMENT_COLORS = {
-  piano: { accent: "rgb(6, 182, 212)", bg: "rgba(6, 182, 212, 0.08)", glow: "rgba(6,182,212,0.4)" },
-  guitar: { accent: "rgb(16, 185, 129)", bg: "rgba(16, 185, 129, 0.08)", glow: "rgba(16,185,129,0.4)" },
-  bass: { accent: "rgb(139, 92, 246)", bg: "rgba(139, 92, 246, 0.08)", glow: "rgba(139,92,246,0.4)" },
-  violin: { accent: "rgb(245, 158, 11)", bg: "rgba(245, 158, 11, 0.08)", glow: "rgba(245,158,11,0.4)" },
-  drums: { accent: "rgb(244, 63, 94)", bg: "rgba(244, 63, 94, 0.08)", glow: "rgba(244,63,94,0.4)" },
+  piano: {
+    accent: "rgb(6, 182, 212)",
+    bg: "rgba(6, 182, 212, 0.08)",
+    glow: "rgba(6,182,212,0.4)",
+  },
+  guitar: {
+    accent: "rgb(16, 185, 129)",
+    bg: "rgba(16, 185, 129, 0.08)",
+    glow: "rgba(16,185,129,0.4)",
+  },
+  bass: {
+    accent: "rgb(139, 92, 246)",
+    bg: "rgba(139, 92, 246, 0.08)",
+    glow: "rgba(139,92,246,0.4)",
+  },
+  violin: {
+    accent: "rgb(245, 158, 11)",
+    bg: "rgba(245, 158, 11, 0.08)",
+    glow: "rgba(245,158,11,0.4)",
+  },
+  drums: {
+    accent: "rgb(244, 63, 94)",
+    bg: "rgba(244, 63, 94, 0.08)",
+    glow: "rgba(244,63,94,0.4)",
+  },
 };
 
 const DEFAULT_COLOR = INSTRUMENT_COLORS.piano;
 
-export default function RecordingsList({ recordings, onDelete, onClearAll }) {
+export default function RecordingsList({
+  recordings,
+  onDelete,
+  onRename,
+  onClearAll,
+}) {
   const [playbackStates, setPlaybackStates] = useState({});
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const enginesRef = useRef({});
 
   useEffect(() => {
@@ -50,27 +80,61 @@ export default function RecordingsList({ recordings, onDelete, onClearAll }) {
       });
       await engine.play();
       setPlaybackStates((prev) =>
-        Object.fromEntries(Object.keys(prev).map((id) => [id, id === recordingId]))
+        Object.fromEntries(
+          Object.keys(prev).map((id) => [id, id === recordingId]),
+        ),
       );
     }
   };
 
   const handleDelete = (recordingId) => {
-    const engine = enginesRef.current[recordingId];
+    setItemToDelete(recordingId);
+  };
+
+  const confirmDelete = () => {
+    if (!itemToDelete) return;
+
+    const engine = enginesRef.current[itemToDelete];
     if (engine) {
       engine.dispose();
-      delete enginesRef.current[recordingId];
+      delete enginesRef.current[itemToDelete];
     }
-    onDelete(recordingId);
+    onDelete(itemToDelete);
+    setItemToDelete(null);
+  };
+
+  const confirmClearAll = () => {
+    onClearAll();
+    setShowClearConfirm(false);
   };
 
   const onDragStartRecording = (e, recording) => {
     e.dataTransfer.setData("application/x-recording-id", recording.id);
     e.dataTransfer.setData(
       "application/x-recording-duration-ms",
-      String(recording.duration || 0)
+      String(recording.duration || 0),
     );
     e.dataTransfer.effectAllowed = "copy";
+  };
+
+  const startEditing = (rec) => {
+    setEditingId(rec.id);
+    setEditName(rec.name || rec.instrument);
+  };
+
+  const saveEditing = (recId) => {
+    if (editName.trim()) {
+      onRename(recId, editName.trim());
+    }
+    setEditingId(null);
+  };
+
+  const handleKeyDown = (e, recId) => {
+    if (e.key === "Enter") {
+      saveEditing(recId);
+    } else if (e.key === "Escape") {
+      setEditingId(null);
+    }
   };
 
   return (
@@ -96,7 +160,7 @@ export default function RecordingsList({ recordings, onDelete, onClearAll }) {
         </div>
         {recordings.length > 0 && (
           <button
-            onClick={onClearAll}
+            onClick={() => setShowClearConfirm(true)}
             className="px-2 py-1 rounded text-xs font-medium transition-all duration-150"
             style={{
               backgroundColor: "transparent",
@@ -126,104 +190,213 @@ export default function RecordingsList({ recordings, onDelete, onClearAll }) {
           >
             🎵
           </div>
-          <p className="text-sm font-medium" style={{ color: "var(--muted-foreground)" }}>
+          <p
+            className="text-sm font-medium"
+            style={{ color: "var(--muted-foreground)" }}
+          >
             No recordings yet
           </p>
           <p
             className="text-xs mt-1.5 leading-relaxed"
-            style={{ color: "var(--muted-foreground)", opacity: 0.6, fontFamily: "var(--font-mono)" }}
+            style={{
+              color: "var(--muted-foreground)",
+              opacity: 0.6,
+              fontFamily: "var(--font-mono)",
+            }}
           >
             Hit ● and start typing to record
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
-          {recordings.map((recording) => {
-            const colors = INSTRUMENT_COLORS[recording.instrument] || DEFAULT_COLOR;
-            const isPlaying = playbackStates[recording.id];
-            return (
-              <div
-                key={recording.id}
-                className="group relative flex items-center gap-2.5 rounded-lg transition-all duration-150 cursor-grab active:cursor-grabbing select-none"
-                style={{
-                  backgroundColor: isPlaying ? colors.bg : "var(--muted)",
-                  border: `1px solid ${isPlaying ? colors.accent + "50" : "var(--border)"}`,
-                  borderLeft: `3px solid ${colors.accent}`,
-                  padding: "9px 10px",
-                  boxShadow: isPlaying ? `0 0 14px ${colors.glow}` : "none",
-                }}
-                draggable
-                onDragStart={(e) => onDragStartRecording(e, recording)}
-              >
-                <button
-                  onClick={() => togglePlayback(recording.id)}
-                  className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-150"
+        <>
+          <div className={styles.noteBox}>
+            <div className={styles.noteIcon}>i</div>
+            <p>Double click to rename</p>
+          </div>
+          <div className="flex flex-col gap-2">
+            {recordings.map((recording) => {
+              const colors =
+                INSTRUMENT_COLORS[recording.instrument] || DEFAULT_COLOR;
+              const isPlaying = playbackStates[recording.id];
+              return (
+                <div
+                  key={recording.id}
+                  className="group relative flex items-center gap-2.5 rounded-lg transition-all duration-150 cursor-grab active:cursor-grabbing select-none"
                   style={{
-                    backgroundColor: isPlaying ? colors.accent : "transparent",
-                    border: `1.5px solid ${colors.accent}`,
-                    color: isPlaying ? "rgb(10,10,20)" : colors.accent,
-                    boxShadow: isPlaying ? `0 0 10px ${colors.glow}` : "none",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: 0,
+                    backgroundColor: isPlaying ? colors.bg : "var(--muted)",
+                    border: `1px solid ${isPlaying ? colors.accent + "50" : "var(--border)"}`,
+                    borderLeft: `3px solid ${colors.accent}`,
+                    padding: "9px 10px",
+                    boxShadow: isPlaying ? `0 0 14px ${colors.glow}` : "none",
                   }}
+                  draggable
+                  onDragStart={(e) => onDragStartRecording(e, recording)}
                 >
-                  {isPlaying ? "■" : "▶"}
-                </button>
+                  <button
+                    onClick={() => togglePlayback(recording.id)}
+                    className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-150"
+                    style={{
+                      backgroundColor: isPlaying
+                        ? colors.accent
+                        : "transparent",
+                      border: `1.5px solid ${colors.accent}`,
+                      color: isPlaying ? "rgb(10,10,20)" : colors.accent,
+                      boxShadow: isPlaying ? `0 0 10px ${colors.glow}` : "none",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      padding: 0,
+                    }}
+                  >
+                    {isPlaying ? "■" : "▶"}
+                  </button>
 
-                <div className="flex-1 min-w-0">
                   <div
-                    className="text-sm font-semibold truncate capitalize"
-                    style={{ color: "var(--foreground)" }}
+                    className="flex-1 min-w-0"
+                    onDoubleClick={() => !editingId && startEditing(recording)}
                   >
-                    {recording.instrument}
+                    <div className="flex items-center gap-2">
+                      {editingId === recording.id ? (
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          onBlur={() => saveEditing(recording.id)}
+                          onKeyDown={(e) => handleKeyDown(e, recording.id)}
+                          autoFocus
+                          className="w-full bg-[var(--background)] border border-[var(--primary)] rounded px-1 py-0.5 text-xs font-bold font-mono text-[var(--foreground)] outline-none"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      ) : (
+                        <div
+                          className="text-sm font-semibold truncate capitalize cursor-text"
+                          style={{ color: "var(--foreground)" }}
+                          title="Double-click to rename"
+                        >
+                          {recording.name || recording.instrument}
+                        </div>
+                      )}
+                    </div>
+                    <div
+                      className="flex items-center gap-2 mt-0.5"
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 10,
+                        color: "var(--muted-foreground)",
+                      }}
+                    >
+                      <span>{recording.notes.length} notes</span>
+                      <span style={{ opacity: 0.4 }}>·</span>
+                      <span>{Math.round(recording.duration / 100) / 10}s</span>
+                    </div>
                   </div>
-                  <div
-                    className="flex items-center gap-2 mt-0.5"
-                    style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--muted-foreground)" }}
+
+                  <button
+                    onClick={() => handleDelete(recording.id)}
+                    className="w-6 h-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-150 flex-shrink-0"
+                    style={{
+                      backgroundColor: "transparent",
+                      border: "none",
+                      color: "var(--muted-foreground)",
+                      fontSize: 12,
+                      boxShadow: "none",
+                      padding: 0,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "var(--destructive)";
+                      e.currentTarget.style.backgroundColor =
+                        "rgba(244,63,94,0.12)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = "var(--muted-foreground)";
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }}
+                    title="Delete recording"
                   >
-                    <span>{recording.notes.length} notes</span>
-                    <span style={{ opacity: 0.4 }}>·</span>
-                    <span>{Math.round(recording.duration / 100) / 10}s</span>
-                  </div>
+                    ✕
+                  </button>
                 </div>
-
-                <button
-                  onClick={() => handleDelete(recording.id)}
-                  className="w-6 h-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-150 flex-shrink-0"
-                  style={{
-                    backgroundColor: "transparent",
-                    border: "none",
-                    color: "var(--muted-foreground)",
-                    fontSize: 12,
-                    boxShadow: "none",
-                    padding: 0,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = "var(--destructive)";
-                    e.currentTarget.style.backgroundColor = "rgba(244,63,94,0.12)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = "var(--muted-foreground)";
-                    e.currentTarget.style.backgroundColor = "transparent";
-                  }}
-                  title="Delete recording"
-                >
-                  ✕
-                </button>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {recordings.length > 0 && (
         <p
           className="text-xs text-center mt-4 select-none"
-          style={{ color: "var(--muted-foreground)", opacity: 0.5, fontFamily: "var(--font-mono)" }}
+          style={{
+            color: "var(--muted-foreground)",
+            opacity: 0.5,
+            fontFamily: "var(--font-mono)",
+          }}
         >
           drag to timeline →
         </p>
+      )}
+      {showClearConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowClearConfirm(false)}
+          />
+          <div className="relative bg-[var(--card)] border border-[var(--border)] p-6 rounded-lg shadow-2xl max-w-sm w-full animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-[var(--foreground)] mb-2">
+              Delete All Recordings?
+            </h3>
+            <p className="text-[var(--muted-foreground)] mb-6 text-sm">
+              Are you sure you want to delete{" "}
+              <span className="text-[var(--foreground)] font-semibold">
+                {recordings.length}
+              </span>{" "}
+              recordings? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                className="px-4 py-2 rounded-md text-sm font-medium hover:bg-[var(--secondary)] text-[var(--foreground)] transition-colors border border-transparent hover:border-[var(--border)]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmClearAll}
+                className="px-4 py-2 rounded-md text-sm font-medium bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all border border-red-500/20 shadow-sm"
+              >
+                Delete All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {itemToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setItemToDelete(null)}
+          />
+          <div className="relative bg-[var(--card)] border border-[var(--border)] p-6 rounded-lg shadow-2xl max-w-sm w-full animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-[var(--foreground)] mb-2">
+              Delete Recording?
+            </h3>
+            <p className="text-[var(--muted-foreground)] mb-6 text-sm">
+              Are you sure you want to delete this recording? This action cannot
+              be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setItemToDelete(null)}
+                className="px-4 py-2 rounded-md text-sm font-medium hover:bg-[var(--secondary)] text-[var(--foreground)] transition-colors border border-transparent hover:border-[var(--border)]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 rounded-md text-sm font-medium bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all border border-red-500/20 shadow-sm"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

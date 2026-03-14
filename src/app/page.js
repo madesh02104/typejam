@@ -55,6 +55,11 @@ export default function Page() {
       };
       if (final.notes.length > 0) {
         setRecordings((list) => {
+          const instrumentCount = list.filter(
+            (r) => r.instrument === selected,
+          ).length;
+          final.name = `${selected}${instrumentCount + 1}`;
+
           const existingIds = new Set(list.map((r) => r.id));
           while (existingIds.has(final.id)) {
             final.id = crypto.randomUUID();
@@ -71,6 +76,12 @@ export default function Page() {
     setRecordings((list) => list.filter((r) => r.id !== recordingId));
   };
 
+  const handleRenameRecording = (recordingId, newName) => {
+    setRecordings((list) =>
+      list.map((r) => (r.id === recordingId ? { ...r, name: newName } : r)),
+    );
+  };
+
   const recordingsById = useRef(new Map());
   useEffect(() => {
     const map = new Map();
@@ -82,20 +93,30 @@ export default function Page() {
     }
   }, [recordings]);
 
-  const handleCreateClip = ({ recordingId, trackIndex, startTimeSec, durationSec }) => {
+  const handleCreateClip = ({
+    recordingId,
+    trackIndex,
+    startTimeSec,
+    durationSec,
+  }) => {
     const newClip = {
       id: crypto.randomUUID(),
       recordingId,
       trackIndex,
       startTimeSec,
       durationSec,
-      name: recordingsById.current.get(recordingId)?.instrument || "rec",
+      name:
+        recordingsById.current.get(recordingId)?.name ||
+        recordingsById.current.get(recordingId)?.instrument ||
+        "rec",
     };
     setClips((prev) => [...prev, newClip]);
   };
 
   const handleUpdateClip = (clipId, patch) => {
-    setClips((prev) => prev.map((c) => (c.id === clipId ? { ...c, ...patch } : c)));
+    setClips((prev) =>
+      prev.map((c) => (c.id === clipId ? { ...c, ...patch } : c)),
+    );
   };
 
   const handleDeleteClip = (clipId) => {
@@ -108,7 +129,10 @@ export default function Page() {
 
   const ensureJamSession = () => {
     if (!jamSessionRef.current) {
-      jamSessionRef.current = createJamSession(recordingsById.current, handlePlaybackEnd);
+      jamSessionRef.current = createJamSession(
+        recordingsById.current,
+        handlePlaybackEnd,
+      );
     }
     return jamSessionRef.current;
   };
@@ -131,7 +155,9 @@ export default function Page() {
   };
 
   const handleDownload = async () => {
-    const recordingsMap = Object.fromEntries(Array.from(recordingsById.current.entries()));
+    const recordingsMap = Object.fromEntries(
+      Array.from(recordingsById.current.entries()),
+    );
     const payload = {
       schemaVersion: 1,
       bpm: 120,
@@ -180,13 +206,8 @@ export default function Page() {
 
   const handleClearAllRecordings = () => {
     if (recordings.length === 0) return;
-    const confirmed = window.confirm(
-      `Delete all ${recordings.length} recordings? This cannot be undone.`
-    );
-    if (confirmed) {
-      setRecordings([]);
-      clearRecordings();
-    }
+    setRecordings([]);
+    clearRecordings();
   };
 
   useEffect(() => {
@@ -201,7 +222,9 @@ export default function Page() {
     };
     setReady(false);
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [selected]);
 
   useEffect(() => {
@@ -221,7 +244,15 @@ export default function Page() {
         const note = drumKeyToNote.get(k);
         const info = indexMap.get(k);
         if (note && info) {
-          instRef.current.play(note, "8n", undefined, 0.95, info.row, info.i, info.len);
+          instRef.current.play(
+            note,
+            "8n",
+            undefined,
+            0.95,
+            info.row,
+            info.i,
+            info.len,
+          );
           if (isRecording) {
             noteData = {
               instrument: selected,
@@ -239,7 +270,14 @@ export default function Page() {
         const m = noteMap.get(k);
         if (m) {
           const info = indexMap.get(k);
-          instRef.current.triggerAttack(m.note, undefined, 0.9, m.row, info?.i ?? 0, info?.len ?? 1);
+          instRef.current.triggerAttack(
+            m.note,
+            undefined,
+            0.9,
+            m.row,
+            info?.i ?? 0,
+            info?.len ?? 1,
+          );
           if (isRecording) {
             const now = Date.now();
             noteStartTimes.set(k, now);
@@ -275,7 +313,13 @@ export default function Page() {
         const m = noteMap.get(k);
         if (m) {
           const info = indexMap.get(k);
-          instRef.current.triggerRelease(m.note, undefined, m.row, info?.i ?? 0, info?.len ?? 1);
+          instRef.current.triggerRelease(
+            m.note,
+            undefined,
+            m.row,
+            info?.i ?? 0,
+            info?.len ?? 1,
+          );
           if (isRecording && noteStartTimes.has(k)) {
             const startTime = noteStartTimes.get(k);
             const duration = Date.now() - startTime;
@@ -301,13 +345,14 @@ export default function Page() {
   }, [selected, ready, isRecording, recordingStartTime]);
 
   return (
-    <main className="p-3 h-screen w-screen box-border flex flex-col gap-3 overflow-hidden">
+    <main className="p-3 h-screen w-full box-border flex flex-col gap-3 overflow-hidden">
       <div className="paper flex items-center gap-4 px-4 py-3 flex-shrink-0">
         <div className="flex-shrink-0 select-none">
           <h1
             className="text-xl font-bold leading-none"
             style={{
-              background: "linear-gradient(135deg, rgb(6, 182, 212) 0%, rgb(124, 58, 237) 100%)",
+              background:
+                "linear-gradient(135deg, rgb(6, 182, 212) 0%, rgb(124, 58, 237) 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               backgroundClip: "text",
@@ -317,23 +362,36 @@ export default function Page() {
           </h1>
           <p
             className="text-xs mt-0.5"
-            style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-mono)" }}
+            style={{
+              color: "var(--muted-foreground)",
+              fontFamily: "var(--font-mono)",
+            }}
           >
             play music by typing
           </p>
         </div>
 
-        <div className="w-px h-8 flex-shrink-0" style={{ backgroundColor: "var(--border)" }} />
+        <div
+          className="w-px h-8 flex-shrink-0"
+          style={{ backgroundColor: "var(--border)" }}
+        />
 
         <label className="flex items-center gap-2.5 flex-shrink-0">
-          <span className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
+          <span
+            className="text-xs font-medium"
+            style={{ color: "var(--muted-foreground)" }}
+          >
             Instrument
           </span>
           <select
             value={selected}
             onChange={(e) => setSelected(e.target.value)}
             className="px-2.5 py-1.5 text-sm font-semibold rounded-md"
-            style={{ backgroundColor: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+            style={{
+              backgroundColor: "var(--input)",
+              border: "1px solid var(--border)",
+              color: "var(--foreground)",
+            }}
           >
             <option value="piano">Piano</option>
             <option value="guitar">Guitar</option>
@@ -343,7 +401,10 @@ export default function Page() {
           </select>
         </label>
 
-        <div className="w-px h-8 flex-shrink-0" style={{ backgroundColor: "var(--border)" }} />
+        <div
+          className="w-px h-8 flex-shrink-0"
+          style={{ backgroundColor: "var(--border)" }}
+        />
 
         <div className="flex items-center gap-2.5 flex-shrink-0">
           <button
@@ -351,10 +412,14 @@ export default function Page() {
             disabled={!ready}
             className="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0"
             style={{
-              backgroundColor: isRecording ? "var(--destructive)" : "transparent",
+              backgroundColor: isRecording
+                ? "var(--destructive)"
+                : "transparent",
               border: `2px solid ${isRecording ? "var(--destructive)" : "var(--border)"}`,
               boxShadow: isRecording ? "0 0 0 0 rgba(244,63,94,0.7)" : "none",
-              animation: isRecording ? "pulse-record 1.1s ease-in-out infinite" : "none",
+              animation: isRecording
+                ? "pulse-record 1.1s ease-in-out infinite"
+                : "none",
             }}
             title={isRecording ? "Stop Recording" : "Start Recording"}
           >
@@ -366,14 +431,20 @@ export default function Page() {
             ) : (
               <span
                 className="block rounded-full"
-                style={{ width: 14, height: 14, backgroundColor: "var(--destructive)" }}
+                style={{
+                  width: 14,
+                  height: 14,
+                  backgroundColor: "var(--destructive)",
+                }}
               />
             )}
           </button>
           <span
             className="text-xs font-semibold tracking-widest select-none"
             style={{
-              color: isRecording ? "var(--destructive)" : "var(--muted-foreground)",
+              color: isRecording
+                ? "var(--destructive)"
+                : "var(--muted-foreground)",
               fontFamily: "var(--font-mono)",
             }}
           >
@@ -381,12 +452,17 @@ export default function Page() {
           </span>
         </div>
 
-        <div className="w-px h-8 flex-shrink-0" style={{ backgroundColor: "var(--border)" }} />
+        <div
+          className="w-px h-8 flex-shrink-0"
+          style={{ backgroundColor: "var(--border)" }}
+        />
 
         <span
           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0"
           style={{
-            backgroundColor: ready ? "rgba(16,185,129,0.12)" : "rgba(245,158,11,0.12)",
+            backgroundColor: ready
+              ? "rgba(16,185,129,0.12)"
+              : "rgba(245,158,11,0.12)",
             color: ready ? "rgb(52,211,153)" : "rgb(251,191,36)",
             border: `1px solid ${ready ? "rgba(16,185,129,0.3)" : "rgba(245,158,11,0.3)"}`,
           }}
@@ -400,8 +476,6 @@ export default function Page() {
           />
           {ready ? "Ready" : "Loading…"}
         </span>
-
-        
       </div>
 
       <div className="flex-1 grid grid-cols-[340px_1fr] gap-3 min-h-0">
@@ -409,11 +483,12 @@ export default function Page() {
           <RecordingsList
             recordings={recordings}
             onDelete={handleDeleteRecording}
+            onRename={handleRenameRecording}
             onClearAll={handleClearAllRecordings}
             currentInstrument={selected}
           />
         </div>
-        <div className="flex flex-col paper p-3 min-h-0">
+        <div className="flex flex-col paper p-3 min-h-0 min-w-0">
           <TransportControls
             isPlaying={isPlaying}
             onPlayPause={onPlayPause}
