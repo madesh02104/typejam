@@ -79,7 +79,6 @@ export function createPlaybackEngine(recording, onEnd) {
     Tone.Transport.cancel();
 
     isPlaying = false;
-    console.log("[TypeJam][playback] Playback stopped and cleaned up");
   };
 
   const dispose = () => {
@@ -91,7 +90,6 @@ export function createPlaybackEngine(recording, onEnd) {
     }
 
     isReady = false;
-    console.log("[TypeJam][playback] Engine disposed");
   };
 
   return {

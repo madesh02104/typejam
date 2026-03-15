@@ -122,32 +122,19 @@ export function makeSampledInstrument(baseUrl, urls, options = {}) {
     },
     play: (note, dur = "8n", time, _vel = 0.9, row = "mid", i = 0, len = 1) => {
       if (!top.loaded || !mid.loaded || !bot.loaded) {
-        console.warn("[TypeJam][play] Samplers not ready yet");
         return;
       }
-
-      console.groupCollapsed("[TypeJam][play] input & derived params");
-      console.log("note", note, "dur", dur, "time", time, "vel", _vel);
-      console.log("row", row, "i", i, "len", len);
-      console.groupEnd();
 
       const nn = Tone.Frequency(note).transpose(transpose).toNote();
 
       const { sampler, velocity } = applyDynamicParams(row, i, len, _vel);
 
-      console.log("[TypeJam][play] triggering Sampler", { resolvedNote: nn });
-
       sampler.triggerAttackRelease(nn, dur, time, velocity);
     },
     triggerAttack: (note, time, _vel = 0.9, row = "mid", i = 0, len = 1) => {
       if (!top.loaded || !mid.loaded || !bot.loaded) {
-        console.warn("[TypeJam][triggerAttack] Samplers not ready yet");
         return;
       }
-
-      console.groupCollapsed("[TypeJam][triggerAttack]");
-      console.log("note", note, "time", time, "vel", _vel, "row", row);
-      console.groupEnd();
 
       // Apply transpose
       const nn = Tone.Frequency(note).transpose(transpose).toNote();
@@ -161,13 +148,8 @@ export function makeSampledInstrument(baseUrl, urls, options = {}) {
     // Sustain mode: trigger release (stop the sustained note)
     triggerRelease: (note, time, row = "mid", i = 0, len = 1) => {
       if (!top.loaded || !mid.loaded || !bot.loaded) {
-        console.warn("[TypeJam][triggerRelease] Samplers not ready yet");
         return;
       }
-
-      console.groupCollapsed("[TypeJam][triggerRelease]");
-      console.log("note", note, "time", time, "row", row);
-      console.groupEnd();
 
       // Apply transpose
       const nn = Tone.Frequency(note).transpose(transpose).toNote();

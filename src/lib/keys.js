@@ -8,7 +8,7 @@ export const rows = {
 
 const notes = (start, n) =>
   Array.from({ length: n }, (_, i) =>
-    Tone.Frequency(start).transpose(i).toNote()
+    Tone.Frequency(start).transpose(i).toNote(),
   );
 
 export const noteMap = new Map([
@@ -26,19 +26,12 @@ export const noteMap = new Map([
   ]),
 ]);
 
-console.groupCollapsed("[TypeJam][keys] noteMap sample");
-console.log(Array.from(noteMap.entries()).slice(0, 5));
-console.groupEnd();
-
 export const indexMap = new Map([
   ...rows.top.map((k, i) => [k, { row: "top", i, len: rows.top.length }]),
   ...rows.mid.map((k, i) => [k, { row: "mid", i, len: rows.mid.length }]),
   ...rows.bot.map((k, i) => [k, { row: "bot", i, len: rows.bot.length }]),
 ]);
 
-console.groupCollapsed("[TypeJam][keys] indexMap sample");
-console.log(Array.from(indexMap.entries()).slice(0, 5));
-console.groupEnd();
 const baseCols = ["C1", "D1", "E1", "F1", "G1", "A1", "B1"];
 
 export const drumKeyToNote = new Map([
@@ -48,7 +41,3 @@ export const drumKeyToNote = new Map([
 
   ...rows.top.map((k, i) => [k, i < 7 ? baseCols[i] : "C2"]),
 ]);
-
-console.groupCollapsed("[TypeJam][keys] drumKeyToNote (all)");
-console.log(Array.from(drumKeyToNote.entries()));
-console.groupEnd();

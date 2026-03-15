@@ -60,14 +60,16 @@ export default function TrackArea({
   const [dragState, setDragState] = useState(null);
   const [volumePopup, setVolumePopup] = useState(null); // { clipId, anchor: { left, top, width, height } }
 
-  // Close popup if scrolling happen or resizing
+  // Close popup if scrolling happen, resizing, or clicking outside
   useEffect(() => {
     const handleDismiss = () => setVolumePopup(null);
     window.addEventListener("scroll", handleDismiss, true);
     window.addEventListener("resize", handleDismiss);
+    window.addEventListener("pointerdown", handleDismiss);
     return () => {
       window.removeEventListener("scroll", handleDismiss, true);
       window.removeEventListener("resize", handleDismiss);
+      window.removeEventListener("pointerdown", handleDismiss);
     };
   }, []);
 

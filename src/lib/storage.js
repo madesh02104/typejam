@@ -4,19 +4,12 @@ export function saveRecordings(recordings) {
   try {
     const jsonString = JSON.stringify(recordings);
     localStorage.setItem(STORAGE_KEY, jsonString);
-
-    console.log(
-      `[TypeJam][storage] Saved ${recordings.length} recordings to localStorage`
-    );
-    console.log(
-      `[TypeJam][storage] Storage size: ${jsonString.length} characters`
-    );
   } catch (error) {
     console.error("[TypeJam][storage] Failed to save recordings:", error);
 
     if (error.name === "QuotaExceededError") {
       console.warn(
-        "[TypeJam][storage] Storage quota exceeded - too many recordings!"
+        "[TypeJam][storage] Storage quota exceeded - too many recordings!",
       );
     }
   }
@@ -27,7 +20,6 @@ export function loadRecordings() {
     const jsonString = localStorage.getItem(STORAGE_KEY);
 
     if (!jsonString) {
-      console.log("[TypeJam][storage] No saved recordings found");
       return [];
     }
 
@@ -35,14 +27,11 @@ export function loadRecordings() {
 
     if (!Array.isArray(recordings)) {
       console.warn(
-        "[TypeJam][storage] Invalid recordings data, returning empty array"
+        "[TypeJam][storage] Invalid recordings data, returning empty array",
       );
       return [];
     }
 
-    console.log(
-      `[TypeJam][storage] Loaded ${recordings.length} recordings from localStorage`
-    );
     return recordings;
   } catch (error) {
     console.error("[TypeJam][storage] Failed to load recordings:", error);
@@ -53,7 +42,6 @@ export function loadRecordings() {
 export function clearRecordings() {
   try {
     localStorage.removeItem(STORAGE_KEY);
-    console.log("[TypeJam][storage] Cleared all recordings from localStorage");
   } catch (error) {
     console.error("[TypeJam][storage] Failed to clear recordings:", error);
   }

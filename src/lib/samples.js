@@ -68,11 +68,3 @@ export const DRUM_NOTE_TO_FILE = {
   C2: "ride.mp3",
   D2: "crash.mp3",
 };
-
-console.groupCollapsed("[TypeJam][samples] URL maps (note->file)");
-console.log("piano", Object.keys(PIANO_URLS));
-console.log("guitar", Object.keys(GUITAR_URLS));
-console.log("bass", Object.keys(BASS_URLS));
-console.log("violin", Object.keys(VIOLIN_URLS));
-console.log("drums", DRUM_NOTE_TO_FILE);
-console.groupEnd();

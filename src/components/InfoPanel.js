@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { INSTRUMENTS } from "../lib/instruments";
-import { rows, noteMap } from "../lib/keys";
+import { rows, noteMap, drumKeyToNote } from "../lib/keys";
+import { DRUM_NOTE_TO_FILE } from "../lib/samples";
 import styles from "./InfoPanel.module.css";
 
 export default function InfoPanel() {
@@ -11,9 +12,22 @@ export default function InfoPanel() {
 
   const tabs = [
     { id: "how-it-works", label: "How it works" },
-    { id: "keymappings", label: "Keymappings" },
+    { id: "instruments", label: "Instruments" },
     // { id: "contribute", label: "Contribute" },
   ];
+
+  const getNoteLabel = (inst, key) => {
+    if (inst === "drums") {
+      const drumNote = drumKeyToNote.get(key);
+      if (drumNote && DRUM_NOTE_TO_FILE[drumNote]) {
+        return DRUM_NOTE_TO_FILE[drumNote]
+          .replace(".mp3", "")
+          .replace("-", " ");
+      }
+      return "-";
+    }
+    return noteMap.get(key)?.note || "-";
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -103,10 +117,10 @@ export default function InfoPanel() {
           </div>
         );
 
-      case "keymappings":
+      case "instruments":
         return (
           <div className={styles.content}>
-            <h2>Available Instruments</h2>
+            <h2>Available Instruments & thier Keymappings</h2>
             <div className={styles.instrumentsList}>
               {Object.keys(INSTRUMENTS).map((inst) => (
                 <div key={inst}>
@@ -138,42 +152,42 @@ export default function InfoPanel() {
                           selectedInstInTab.slice(1)}
                       </h3>
                       <div className={styles.keyLayout}>
-                        <div className={styles.rowGroup}>
+                        <div className={`${styles.rowGroup} ${styles.rowTop}`}>
                           <div className={styles.rowLabel}>Top Row</div>
                           <div className={styles.keys}>
                             {rows.top.map((key) => (
                               <div key={key} className={styles.keyButton}>
                                 <div className={styles.keyLabel}>{key}</div>
                                 <div className={styles.noteLabel}>
-                                  {noteMap.get(key)?.note}
+                                  {getNoteLabel(selectedInstInTab, key)}
                                 </div>
                               </div>
                             ))}
                           </div>
                         </div>
 
-                        <div className={styles.rowGroup}>
+                        <div className={`${styles.rowGroup} ${styles.rowMid}`}>
                           <div className={styles.rowLabel}>Middle Row</div>
                           <div className={styles.keys}>
                             {rows.mid.map((key) => (
                               <div key={key} className={styles.keyButton}>
                                 <div className={styles.keyLabel}>{key}</div>
                                 <div className={styles.noteLabel}>
-                                  {noteMap.get(key)?.note}
+                                  {getNoteLabel(selectedInstInTab, key)}
                                 </div>
                               </div>
                             ))}
                           </div>
                         </div>
 
-                        <div className={styles.rowGroup}>
+                        <div className={`${styles.rowGroup} ${styles.rowBot}`}>
                           <div className={styles.rowLabel}>Bottom Row</div>
                           <div className={styles.keys}>
                             {rows.bot.map((key) => (
                               <div key={key} className={styles.keyButton}>
                                 <div className={styles.keyLabel}>{key}</div>
                                 <div className={styles.noteLabel}>
-                                  {noteMap.get(key)?.note}
+                                  {getNoteLabel(selectedInstInTab, key)}
                                 </div>
                               </div>
                             ))}
@@ -185,6 +199,7 @@ export default function InfoPanel() {
                 </div>
               ))}
             </div>
+            <p className="pt-2 pl-2">More instruments will get added soon...</p>
           </div>
         );
 

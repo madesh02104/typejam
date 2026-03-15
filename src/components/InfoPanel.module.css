@@ -124,18 +124,22 @@
 .keyLayout {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
   margin-top: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
 }
 
 .rowGroup {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
+  width: max-content;
 }
 
 .rowLabel {
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-secondary, #94a3b8);
   text-transform: uppercase;
@@ -144,8 +148,16 @@
 
 .keys {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
+}
+
+.rowMid .keys {
+  padding-left: 24px;
+}
+
+.rowBot .keys {
+  padding-left: 48px;
 }
 
 .keyButton {
@@ -153,14 +165,15 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 48px;
+  min-width: 52px;
+  padding: 4px 8px;
   height: 56px;
   background: var(--muted);
   border: 1px solid var(--border);
   border-radius: 6px;
   cursor: default;
   transition: all 0.2s ease;
-  padding: 4px;
+  flex-shrink: 0;
 }
 
 .keyButton:hover {
@@ -220,7 +233,7 @@
   margin-top: 8px;
   margin-bottom: 16px;
   padding: 8px;
-  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  background: color-mix(in srgb, #fff 10%, transparent);
   border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
   border-radius: 8px;
   display: flex;

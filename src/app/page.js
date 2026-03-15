@@ -377,7 +377,7 @@ export default function Page() {
               fontFamily: "var(--font-mono)",
             }}
           >
-            play music by typing
+            Jam music by typing
           </p>
         </div>
 
