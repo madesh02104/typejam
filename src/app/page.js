@@ -14,7 +14,6 @@ import {
 import RecordingsList from "../components/RecordingsList";
 import JamBoard from "../components/JamBoard";
 import TransportControls from "../components/TransportControls";
-import { AUDIO_API_URL } from "../lib/config";
 import { createJamSession } from "../lib/jamSession";
 
 export default function Page() {
@@ -163,55 +162,55 @@ export default function Page() {
   };
 
   const handleDownload = async () => {
+    if (clips.length === 0) return;
     setIsExporting(true);
-    const recordingsMap = Object.fromEntries(
-      Array.from(recordingsById.current.entries()),
-    );
-    const payload = {
-      schemaVersion: 1,
-      bpm: 120,
-      clips,
-      recordingsById: recordingsMap,
-    };
-    const filenameBase = `jam-${Date.now()}`;
+
     try {
-      const res = await fetch(`${AUDIO_API_URL}/api/convert?format=wav`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error(`WAV failed ${res.status}`);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
+      if (Tone.context.state !== "running") await Tone.start();
+
+      const session = ensureJamSession();
+      session.stop();
+      setIsPlaying(false);
+
+      const recorder = new Tone.Recorder();
+      Tone.Destination.connect(recorder);
+      recorder.start();
+
+      let maxEndTime = 0;
+      for (const clip of clips) {
+        maxEndTime = Math.max(
+          maxEndTime,
+          clip.startTimeSec + (clip.durationSec || 0),
+        );
+      }
+
+      const recordDuration = maxEndTime + 2;
+
+      await session.play(clips);
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, recordDuration * 1000),
+      );
+
+      const recording = await recorder.stop();
+      Tone.Destination.disconnect(recorder);
+      recorder.dispose();
+
+      const url = URL.createObjectURL(recording);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${filenameBase}.wav`;
+      a.download = `jam-${Date.now()}.webm`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-    } catch (e) {
-      try {
-        const res = await fetch(`${AUDIO_API_URL}/api/convert?format=midi`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) throw new Error(`MIDI failed ${res.status}`);
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${filenameBase}.mid`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-      } catch (e2) {
-        alert("Download failed. Please try again later.");
-      }
+    } catch (error) {
+      console.error("Download failed:", error);
+      alert("Download failed. Please try again.");
     } finally {
       setIsExporting(false);
+      const session = ensureJamSession();
+      session.stop();
     }
   };
 
