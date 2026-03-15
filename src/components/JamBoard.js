@@ -13,10 +13,12 @@ export default function JamBoard({
   onDeleteClip,
   pxPerSec = 100,
   numTracks = 10,
+  onAddTrack,
   snapSec = 0.5,
   isActive = false,
 }) {
   const boardRef = useRef(null);
+  const scrollRef = useRef(null);
   const [showInfo, setShowInfo] = useState(true);
   const [hasOpenedInfo, setHasOpenedInfo] = useState(false);
   const [playheadSec, setPlayheadSec] = useState(0);
@@ -58,11 +60,12 @@ export default function JamBoard({
       );
 
       const boardEl = boardRef.current;
-      if (!boardEl) return;
+      const scrollEl = scrollRef.current;
+      if (!boardEl || !scrollEl) return;
 
       const rect = boardEl.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const x = e.clientX - rect.left + scrollEl.scrollLeft;
+      const y = e.clientY - rect.top + scrollEl.scrollTop;
 
       const trackHeight = 56;
       let trackIndex = Math.floor((y - 24) / trackHeight);
@@ -123,26 +126,32 @@ export default function JamBoard({
       onDrop={onDropFromLibrary}
       onDragOver={onDragOver}
     >
-      <div className="relative flex-1 overflow-x-auto overflow-y-hidden">
-        <div style={{ width: contentWidthPx }}>
-          <div className="relative">
+      <div ref={scrollRef} className="relative flex-1 overflow-auto">
+        <div
+          className="relative h-fit min-h-full"
+          style={{ width: contentWidthPx }}
+        >
+          <div
+            className="sticky top-0 z-20"
+            style={{ backgroundColor: "var(--muted)" }}
+          >
             <TimelineRuler
               pxPerSec={pxPerSec}
               leftGutterPx={64}
               heightPx={24}
               totalSec={totalSec}
             />
-            <div
-              className="absolute top-0 bottom-0"
-              style={{
-                left: 64 + playheadSec * pxPerSec,
-                width: 1.5,
-                backgroundColor: "var(--destructive)",
-                boxShadow: "0 0 6px var(--destructive)",
-                zIndex: 10,
-              }}
-            />
           </div>
+          <div
+            className="absolute top-0 bottom-0 pointer-events-none"
+            style={{
+              left: 64 + playheadSec * pxPerSec,
+              width: 1.5,
+              backgroundColor: "var(--destructive)",
+              boxShadow: "0 0 6px var(--destructive)",
+              zIndex: 30,
+            }}
+          />
           <TrackArea
             pxPerSec={pxPerSec}
             numTracks={numTracks}
@@ -153,6 +162,7 @@ export default function JamBoard({
             rowHeightPx={56}
             snapSec={snapSec}
             totalSec={totalSec}
+            onAddTrack={onAddTrack}
           />
         </div>
       </div>

@@ -59,8 +59,9 @@ export default function RecordingsList({
   const enginesRef = useRef({});
 
   useEffect(() => {
+    const currentEngines = enginesRef.current;
     return () => {
-      Object.values(enginesRef.current).forEach((engine) => engine.dispose());
+      Object.values(currentEngines).forEach((engine) => engine.dispose());
     };
   }, []);
 

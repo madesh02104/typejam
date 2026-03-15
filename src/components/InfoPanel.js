@@ -80,13 +80,13 @@ export default function InfoPanel() {
                 <strong>Select an instrument</strong> from the list
               </li>
               <li>
-                <strong>Play</strong> by pressing QWERTY keys
+                <strong>Play</strong> by pressing your keys
               </li>
               <li>
-                <strong>Record</strong> your performance
+                <strong>Record</strong> your instrument
               </li>
               <li>
-                <strong>Arrange</strong> clips on the timeline
+                <strong>Arrange</strong> clips on the Jamboard
               </li>
               <li>
                 <strong>Export</strong> your tune

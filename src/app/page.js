@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import * as Tone from "tone";
 import { INSTRUMENTS } from "../lib/instruments";
@@ -29,6 +30,8 @@ export default function Page() {
   const [pxPerSec, setPxPerSec] = useState(100);
   const [snapSec, setSnapSec] = useState(0.5);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [numTracks, setNumTracks] = useState(10);
   const jamSessionRef = useRef(null);
 
   useEffect(() => {
@@ -160,6 +163,7 @@ export default function Page() {
   };
 
   const handleDownload = async () => {
+    setIsExporting(true);
     const recordingsMap = Object.fromEntries(
       Array.from(recordingsById.current.entries()),
     );
@@ -206,6 +210,8 @@ export default function Page() {
       } catch (e2) {
         alert("Download failed. Please try again later.");
       }
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -515,13 +521,28 @@ export default function Page() {
               onUpdateClip={handleUpdateClip}
               onDeleteClip={handleDeleteClip}
               pxPerSec={pxPerSec}
-              numTracks={10}
+              numTracks={numTracks}
+              onAddTrack={() => setNumTracks((n) => n + 1)}
               snapSec={snapSec}
               isActive={isPlaying}
             />
           </div>
         </div>
       </div>
+      {isExporting && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center">
+          <div className="bg-card border border-border rounded-xl p-8 shadow-2xl flex flex-col items-center gap-4">
+            <Loader2 className="w-10 h-10 animate-spin text-primary" />
+            <h3 className="text-xl font-bold text-foreground">
+              Downloading Jam...
+            </h3>
+            <p className="text-muted-foreground text-sm max-w-xs text-center">
+              Please wait while your jam session is being rendered to an audio
+              file...
+            </p>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

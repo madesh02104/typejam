@@ -54,6 +54,7 @@ export default function TrackArea({
   rowHeightPx = 56,
   snapSec = 0.5,
   totalSec = 60,
+  onAddTrack,
 }) {
   const boardRef = useRef(null);
   const [dragState, setDragState] = useState(null);
@@ -160,6 +161,26 @@ export default function TrackArea({
             </span>
           </div>
         ))}
+
+        <div
+          className="flex items-center justify-center cursor-pointer hover:bg-black/5 transition-colors"
+          style={{
+            height: rowHeightPx,
+            borderBottom: "1px solid var(--border)",
+          }}
+          onClick={onAddTrack}
+          title="Add Track"
+        >
+          <span
+            style={{
+              fontSize: 16,
+              fontWeight: 600,
+              color: "var(--muted-foreground)",
+            }}
+          >
+            +
+          </span>
+        </div>
       </div>
 
       <div
@@ -275,6 +296,21 @@ export default function TrackArea({
             })}
           </div>
         ))}
+
+        {/* Add Track Button */}
+        <div
+          className="flex items-center cursor-pointer group hover:bg-[var(--card)] transition-colors"
+          style={{
+            height: rowHeightPx,
+            borderBottom: "1px solid var(--border)",
+            backgroundColor: "var(--muted)",
+          }}
+          onClick={onAddTrack}
+        >
+          <span className="ml-4 text-xs font-semibold uppercase tracking-widest text-[var(--muted-foreground)] group-hover:text-[var(--foreground)] transition-colors">
+            Add Track
+          </span>
+        </div>
       </div>
       {volumePopup &&
         typeof document !== "undefined" &&
