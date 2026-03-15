@@ -64,14 +64,18 @@ export function createJamSession(recordingsById, onPlaybackEnd) {
         if (!engine) continue;
         const events = makeEvents(rec);
         const part = new Tone.Part((time, ev) => {
+          // Scale velocity by clip volume (default to 1.0 if not set)
+          const volumeScale = clip.volume ?? 1.0;
+          const finalVelocity = ev.velocity * volumeScale;
+
           engine.instrument.play(
             ev.note,
             ev.duration,
             time,
-            ev.velocity,
+            finalVelocity,
             ev.row,
             ev.i,
-            ev.len
+            ev.len,
           );
         }, events);
         part.loop = false;

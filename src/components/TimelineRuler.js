@@ -4,7 +4,7 @@ import { useMemo } from "react";
 
 export default function TimelineRuler({
   pxPerSec,
-  leftGutterPx = 48,
+  leftGutterPx = 64,
   heightPx = 24,
   totalSec = 120,
 }) {
@@ -61,19 +61,19 @@ export default function TimelineRuler({
             style={{
               width: 1,
               height: heightPx,
-              backgroundColor: "rgba(40,40,64,0.9)",
+              backgroundColor: "var(--border)",
             }}
           />
           <div
             className="absolute select-none"
             style={{
               top: 4,
-              left: 3,
-              fontSize: 9,
+              left: 4,
+              fontSize: 10,
               fontFamily: "var(--font-mono)",
-              fontWeight: 500,
+              fontWeight: 600,
               color: "var(--muted-foreground)",
-              letterSpacing: "0.04em",
+              letterSpacing: "0.02em",
               whiteSpace: "nowrap",
             }}
           >

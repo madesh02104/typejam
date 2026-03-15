@@ -1,34 +1,45 @@
 "use client";
 
+import {
+  Play,
+  Square,
+  Trash2,
+  Info,
+  Grab,
+  ChevronRight,
+  Keyboard,
+  Music,
+  Pause,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPlaybackEngine } from "../lib/playback";
 import styles from "./InfoPanel.module.css";
 
 const INSTRUMENT_COLORS = {
   piano: {
-    accent: "rgb(6, 182, 212)",
-    bg: "rgba(6, 182, 212, 0.08)",
-    glow: "rgba(6,182,212,0.4)",
+    accent: "rgb(0, 184, 217)",
+    bg: "rgba(0, 184, 217, 0.08)",
+    glow: "rgba(0,184,217,0.4)",
   },
   guitar: {
-    accent: "rgb(16, 185, 129)",
-    bg: "rgba(16, 185, 129, 0.08)",
-    glow: "rgba(16,185,129,0.4)",
+    accent: "rgb(52, 199, 89)",
+    bg: "rgba(52, 199, 89, 0.08)",
+    glow: "rgba(52, 199, 89, 0.4)",
   },
   bass: {
-    accent: "rgb(139, 92, 246)",
-    bg: "rgba(139, 92, 246, 0.08)",
-    glow: "rgba(139,92,246,0.4)",
+    accent: "rgb(175, 82, 222)",
+    bg: "rgba(175, 82, 222, 0.08)",
+    glow: "rgba(175, 82, 222, 0.4)",
   },
   violin: {
-    accent: "rgb(245, 158, 11)",
-    bg: "rgba(245, 158, 11, 0.08)",
-    glow: "rgba(245,158,11,0.4)",
+    accent: "rgb(255, 149, 0)",
+    bg: "rgba(255, 149, 0, 0.08)",
+    glow: "rgba(255, 149, 0, 0.4)",
   },
   drums: {
-    accent: "rgb(244, 63, 94)",
-    bg: "rgba(244, 63, 94, 0.08)",
-    glow: "rgba(244,63,94,0.4)",
+    accent: "rgb(255, 59, 48)",
+    bg: "rgba(255, 59, 48, 0.08)",
+    glow: "rgba(255, 59, 48, 0.4)",
   },
 };
 
@@ -57,7 +68,12 @@ export default function RecordingsList({
     if (!enginesRef.current[recordingId]) {
       const recording = recordings.find((r) => r.id === recordingId);
       if (recording) {
-        enginesRef.current[recordingId] = createPlaybackEngine(recording);
+        enginesRef.current[recordingId] = createPlaybackEngine(
+          recording,
+          () => {
+            setPlaybackStates((prev) => ({ ...prev, [recordingId]: false }));
+          },
+        );
       }
     }
     return enginesRef.current[recordingId];
@@ -79,11 +95,10 @@ export default function RecordingsList({
         }
       });
       await engine.play();
-      setPlaybackStates((prev) =>
-        Object.fromEntries(
-          Object.keys(prev).map((id) => [id, id === recordingId]),
-        ),
-      );
+      setPlaybackStates((prev) => ({
+        ...Object.fromEntries(Object.entries(prev).map(([k]) => [k, false])),
+        [recordingId]: true,
+      }));
     }
   };
 
@@ -113,6 +128,10 @@ export default function RecordingsList({
     e.dataTransfer.setData(
       "application/x-recording-duration-ms",
       String(recording.duration || 0),
+    );
+    e.dataTransfer.setData(
+      "application/x-recording-instrument",
+      recording.instrument,
     );
     e.dataTransfer.effectAllowed = "copy";
   };
@@ -161,7 +180,7 @@ export default function RecordingsList({
         {recordings.length > 0 && (
           <button
             onClick={() => setShowClearConfirm(true)}
-            className="px-2 py-1 rounded text-xs font-medium transition-all duration-150"
+            className="flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-all duration-150"
             style={{
               backgroundColor: "transparent",
               border: "1px solid var(--border)",
@@ -177,6 +196,7 @@ export default function RecordingsList({
               e.currentTarget.style.color = "var(--muted-foreground)";
             }}
           >
+            <Trash2 size={12} />
             Clear All
           </button>
         )}
@@ -186,9 +206,9 @@ export default function RecordingsList({
         <div className="flex-1 flex flex-col items-center justify-center text-center px-4 py-10 select-none">
           <div
             className="text-4xl mb-4"
-            style={{ filter: "grayscale(1)", opacity: 0.25 }}
+            style={{ color: "var(--muted-foreground)", opacity: 0.25 }}
           >
-            🎵
+            <Music size={48} />
           </div>
           <p
             className="text-sm font-medium"
@@ -197,20 +217,24 @@ export default function RecordingsList({
             No recordings yet
           </p>
           <p
-            className="text-xs mt-1.5 leading-relaxed"
+            className="text-xs mt-1.5 flex items-center justify-center gap-1.5 leading-relaxed"
             style={{
               color: "var(--muted-foreground)",
               opacity: 0.6,
               fontFamily: "var(--font-mono)",
             }}
           >
-            Hit ● and start typing to record
+            Hit{" "}
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />{" "}
+            and start typing to record
           </p>
         </div>
       ) : (
         <>
           <div className={styles.noteBox}>
-            <div className={styles.noteIcon}>i</div>
+            {/* <div className={styles.noteIcon}>
+              <Info size={14} />
+            </div> */}
             <p>Double click to rename</p>
           </div>
           <div className="flex flex-col gap-2">
@@ -223,9 +247,8 @@ export default function RecordingsList({
                   key={recording.id}
                   className="group relative flex items-center gap-2.5 rounded-lg transition-all duration-150 cursor-grab active:cursor-grabbing select-none"
                   style={{
-                    backgroundColor: isPlaying ? colors.bg : "var(--muted)",
-                    border: `1px solid ${isPlaying ? colors.accent + "50" : "var(--border)"}`,
-                    borderLeft: `3px solid ${colors.accent}`,
+                    backgroundColor: colors.bg,
+                    border: `1px solid ${colors.accent + "50"}`,
                     padding: "9px 10px",
                     boxShadow: isPlaying ? `0 0 14px ${colors.glow}` : "none",
                   }}
@@ -234,20 +257,20 @@ export default function RecordingsList({
                 >
                   <button
                     onClick={() => togglePlayback(recording.id)}
-                    className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-150"
+                    className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200 hover:scale-105"
                     style={{
-                      backgroundColor: isPlaying
-                        ? colors.accent
-                        : "transparent",
-                      border: `1.5px solid ${colors.accent}`,
-                      color: isPlaying ? "rgb(10,10,20)" : colors.accent,
-                      boxShadow: isPlaying ? `0 0 10px ${colors.glow}` : "none",
-                      fontSize: 10,
-                      fontWeight: 700,
+                      backgroundColor: colors.accent,
+                      color: "rgb(18,18,18)",
+                      border: "none",
+                      boxShadow: isPlaying ? `0 0 12px ${colors.glow}` : "none",
                       padding: 0,
                     }}
                   >
-                    {isPlaying ? "■" : "▶"}
+                    {isPlaying ? (
+                      <Pause fill="currentColor" size={13} />
+                    ) : (
+                      <Play fill="currentColor" size={13} />
+                    )}
                   </button>
 
                   <div
@@ -312,7 +335,7 @@ export default function RecordingsList({
                     }}
                     title="Delete recording"
                   >
-                    ✕
+                    <Trash2 size={14} />
                   </button>
                 </div>
               );

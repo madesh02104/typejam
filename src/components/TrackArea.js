@@ -1,42 +1,44 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Volume2, X } from "lucide-react";
 
 const INSTRUMENT_COLORS = {
   piano: {
-    bg: "rgba(6, 182, 212, 0.15)",
-    border: "1px solid rgba(6, 182, 212, 0.35)",
-    borderLeft: "3px solid rgb(6, 182, 212)",
-    text: "rgb(6, 182, 212)",
-    glow: "rgba(6,182,212,0.2)",
+    bg: "rgba(0, 184, 217, 0.15)",
+    border: "1px solid rgba(0, 184, 217, 0.35)",
+    borderLeft: "3px solid rgb(0, 184, 217)",
+    text: "rgb(0, 184, 217)",
+    glow: "rgba(0, 184, 217, 0.2)",
   },
   guitar: {
-    bg: "rgba(16, 185, 129, 0.15)",
-    border: "1px solid rgba(16, 185, 129, 0.35)",
-    borderLeft: "3px solid rgb(16, 185, 129)",
-    text: "rgb(16, 185, 129)",
-    glow: "rgba(16,185,129,0.2)",
+    bg: "rgba(52, 199, 89, 0.15)",
+    border: "1px solid rgba(52, 199, 89, 0.35)",
+    borderLeft: "3px solid rgb(52, 199, 89)",
+    text: "rgb(52, 199, 89)",
+    glow: "rgba(52, 199, 89, 0.2)",
   },
   bass: {
-    bg: "rgba(139, 92, 246, 0.15)",
-    border: "1px solid rgba(139, 92, 246, 0.35)",
-    borderLeft: "3px solid rgb(139, 92, 246)",
-    text: "rgb(139, 92, 246)",
-    glow: "rgba(139,92,246,0.2)",
+    bg: "rgba(175, 82, 222, 0.15)",
+    border: "1px solid rgba(175, 82, 222, 0.35)",
+    borderLeft: "3px solid rgb(175, 82, 222)",
+    text: "rgb(175, 82, 222)",
+    glow: "rgba(175, 82, 222, 0.2)",
   },
   violin: {
-    bg: "rgba(245, 158, 11, 0.15)",
-    border: "1px solid rgba(245, 158, 11, 0.35)",
-    borderLeft: "3px solid rgb(245, 158, 11)",
-    text: "rgb(245, 158, 11)",
-    glow: "rgba(245,158,11,0.2)",
+    bg: "rgba(255, 149, 0, 0.15)",
+    border: "1px solid rgba(255, 149, 0, 0.35)",
+    borderLeft: "3px solid rgb(255, 149, 0)",
+    text: "rgb(255, 149, 0)",
+    glow: "rgba(255, 149, 0, 0.2)",
   },
   drums: {
-    bg: "rgba(244, 63, 94, 0.15)",
-    border: "1px solid rgba(244, 63, 94, 0.35)",
-    borderLeft: "3px solid rgb(244, 63, 94)",
-    text: "rgb(244, 63, 94)",
-    glow: "rgba(244,63,94,0.2)",
+    bg: "rgba(255, 59, 48, 0.15)",
+    border: "1px solid rgba(255, 59, 48, 0.35)",
+    borderLeft: "3px solid rgb(255, 59, 48)",
+    text: "rgb(255, 59, 48)",
+    glow: "rgba(255, 59, 48, 0.2)",
   },
 };
 
@@ -48,15 +50,30 @@ export default function TrackArea({
   clipsByTrack,
   onUpdateClip,
   onDeleteClip,
-  leftGutterPx = 48,
+  leftGutterPx = 64,
   rowHeightPx = 56,
   snapSec = 0.5,
   totalSec = 60,
 }) {
   const boardRef = useRef(null);
   const [dragState, setDragState] = useState(null);
+  const [volumePopup, setVolumePopup] = useState(null); // { clipId, anchor: { left, top, width, height } }
+
+  // Close popup if scrolling happen or resizing
+  useEffect(() => {
+    const handleDismiss = () => setVolumePopup(null);
+    window.addEventListener("scroll", handleDismiss, true);
+    window.addEventListener("resize", handleDismiss);
+    return () => {
+      window.removeEventListener("scroll", handleDismiss, true);
+      window.removeEventListener("resize", handleDismiss);
+    };
+  }, []);
 
   const onPointerDownClip = useCallback((e, clip) => {
+    // If clicking on controls, don't drag
+    if (e.target.closest("button") || e.target.closest("input")) return;
+
     e.preventDefault();
     setDragState({
       clipId: clip.id,
@@ -82,7 +99,7 @@ export default function TrackArea({
       if (trackIndex >= numTracks) trackIndex = numTracks - 1;
       onUpdateClip(dragState.clipId, { startTimeSec: snappedSec, trackIndex });
     },
-    [dragState, onUpdateClip, pxPerSec, rowHeightPx, numTracks, snapSec]
+    [dragState, onUpdateClip, pxPerSec, rowHeightPx, numTracks, snapSec],
   );
 
   const onPointerUp = useCallback(
@@ -91,7 +108,7 @@ export default function TrackArea({
       boardRef.current?.releasePointerCapture?.(e.pointerId);
       setDragState(null);
     },
-    [dragState]
+    [dragState],
   );
 
   useEffect(() => {
@@ -131,12 +148,12 @@ export default function TrackArea({
           >
             <span
               style={{
-                fontSize: 9,
+                fontSize: 11,
                 fontFamily: "var(--font-mono)",
-                fontWeight: 600,
+                fontWeight: 700,
                 color: "var(--muted-foreground)",
-                letterSpacing: "0.06em",
-                opacity: 0.7,
+                letterSpacing: "0.05em",
+                opacity: 0.8,
               }}
             >
               T{i + 1}
@@ -170,7 +187,8 @@ export default function TrackArea({
             />
 
             {clipsByTrack[trackIndex]?.map((clip) => {
-              const colors = INSTRUMENT_COLORS[clip.name] || DEFAULT_COLORS;
+              const colors =
+                INSTRUMENT_COLORS[clip.instrument] || DEFAULT_COLORS;
               return (
                 <div
                   key={clip.id}
@@ -186,73 +204,153 @@ export default function TrackArea({
                     borderRadius: "4px",
                     boxShadow: `0 2px 8px ${colors.glow}`,
                     cursor: "move",
+                    zIndex: 5,
                   }}
                   onPointerDown={(e) => onPointerDownClip(e, clip)}
                   title={`${clip.name} @ ${clip.startTimeSec.toFixed(2)}s`}
                 >
+                  {/* Clip Header/Label */}
                   <div
-                    className="truncate"
+                    className="truncate pointer-events-none"
                     style={{
-                      paddingLeft: 6,
-                      paddingTop: 3,
-                      fontSize: 10,
-                      fontFamily: "var(--font-mono)",
+                      paddingLeft: 8,
+                      paddingTop: 4,
+                      fontSize: 11,
+                      fontFamily: "var(--font-sans)",
                       fontWeight: 600,
                       color: colors.text,
-                      letterSpacing: "0.02em",
-                      textTransform: "capitalize",
+                      opacity: 0.9,
                     }}
                   >
-                    {clip.name || clip.recordingId.slice(0, 6)}
-                  </div>
-                  <div
-                    style={{
-                      paddingLeft: 6,
-                      fontSize: 9,
-                      fontFamily: "var(--font-mono)",
-                      color: colors.text,
-                      opacity: 0.6,
-                    }}
-                  >
-                    {clip.durationSec.toFixed(2)}s
+                    {clip.name}
                   </div>
 
-                  <button
-                    className="absolute opacity-0 group-hover/clip:opacity-100 transition-opacity duration-150 flex items-center justify-center"
-                    style={{
-                      top: -6,
-                      right: -6,
-                      width: 16,
-                      height: 16,
-                      borderRadius: "50%",
-                      backgroundColor: "var(--destructive)",
-                      color: "white",
-                      fontSize: 9,
-                      fontWeight: 700,
-                      border: "1.5px solid var(--background)",
-                      boxShadow: "0 0 6px rgba(244,63,94,0.5)",
-                      padding: 0,
-                      lineHeight: 1,
-                      zIndex: 5,
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteClip?.(clip.id);
-                    }}
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                    }}
-                    title="Remove clip"
+                  {/* Controls Container */}
+                  <div
+                    className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover/clip:opacity-100 transition-opacity duration-200"
+                    onPointerDown={(e) => e.stopPropagation()}
                   >
-                    ×
-                  </button>
+                    {/* Volume Control */}
+                    <div className="relative group/volume">
+                      <button
+                        className="w-4 h-4 rounded flex items-center justify-center hover:bg-black/10 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (volumePopup?.clipId === clip.id) {
+                            setVolumePopup(null);
+                          } else {
+                            const rect =
+                              e.currentTarget.getBoundingClientRect();
+                            setVolumePopup({
+                              clipId: clip.id,
+                              anchor: {
+                                left: rect.left,
+                                top: rect.top,
+                                width: rect.width,
+                                height: rect.height,
+                              },
+                            });
+                          }
+                        }}
+                        title="Adjust volume"
+                      >
+                        <Volume2 size={12} />
+                      </button>
+                    </div>
+
+                    {/* Delete Button */}
+                    <button
+                      className="w-5 h-5 rounded flex items-center justify-center hover:bg-black/20 transition-colors text-[var(--muted-foreground)] hover:text-red-500"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteClip(clip.id);
+                      }}
+                      title="Remove clip"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
                 </div>
               );
             })}
           </div>
         ))}
       </div>
+      {volumePopup &&
+        typeof document !== "undefined" &&
+        createPortal(
+          (() => {
+            // Find the active clip from props
+            // The structure of clipsByTrack is likely { [trackId]: clips[] } or array of arrays
+            let clip = null;
+            if (Array.isArray(clipsByTrack)) {
+              for (const list of clipsByTrack) {
+                if (list) {
+                  const found = list.find((c) => c.id === volumePopup.clipId);
+                  if (found) {
+                    clip = found;
+                    break;
+                  }
+                }
+              }
+            } else {
+              // Fallback if object
+              for (const key in clipsByTrack) {
+                const list = clipsByTrack[key];
+                if (list) {
+                  const found = list.find((c) => c.id === volumePopup.clipId);
+                  if (found) {
+                    clip = found;
+                    break;
+                  }
+                }
+              }
+            }
+
+            if (!clip) return null;
+
+            const { left, top, width } = volumePopup.anchor;
+
+            return (
+              <div
+                className="fixed bg-[var(--card)] border border-[var(--border)] rounded-md p-3 shadow-xl z-[9999] flex flex-col items-center gap-2"
+                style={{
+                  minWidth: "40px",
+                  minHeight: "100px",
+                  top: top - 100, // position above
+                  left: left + width / 2,
+                  transform: "translateX(-50%)",
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <div className="h-20 w-1.5 bg-[var(--background)] border border-[var(--border)] rounded-full relative flex items-center justify-center">
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={clip.volume ?? 1}
+                    onChange={(e) =>
+                      onUpdateClip(clip.id, {
+                        volume: parseFloat(e.target.value),
+                      })
+                    }
+                    className="absolute w-20 h-5 origin-center -rotate-90 cursor-pointer opacity-0 z-10"
+                    style={{ top: "32px" }}
+                  />
+                  <div
+                    className="absolute bottom-0 w-full rounded-full bg-[var(--primary)] transition-all pointer-events-none shadow-[0_0_8px_var(--primary)]"
+                    style={{ height: `${(clip.volume ?? 1) * 100}%` }}
+                  />
+                </div>
+                <span className="text-[10px] font-mono font-bold text-[var(--muted-foreground)]">
+                  {Math.round((clip.volume ?? 1) * 100)}
+                </span>
+              </div>
+            );
+          })(),
+          document.body,
+        )}
     </div>
   );
 }

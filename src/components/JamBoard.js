@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronRight, ChevronLeft } from "lucide-react";
 import InfoPanel from "./InfoPanel";
 import TimelineRuler from "./TimelineRuler";
 import TrackArea from "./TrackArea";
@@ -47,6 +48,9 @@ export default function JamBoard({
       const durationMsStr = e.dataTransfer.getData(
         "application/x-recording-duration-ms",
       );
+      const instrumentStr = e.dataTransfer.getData(
+        "application/x-recording-instrument",
+      );
       if (!recordingId) return;
       const durationSec = Math.max(
         0.001,
@@ -65,7 +69,7 @@ export default function JamBoard({
       if (trackIndex < 0) trackIndex = 0;
       if (trackIndex >= numTracks) trackIndex = numTracks - 1;
 
-      const timeStartX = 48;
+      const timeStartX = 64;
       const rawSec = (x - timeStartX) / pxPerSec;
       const snappedSec = snapSec
         ? Math.max(0, Math.round(rawSec / snapSec) * snapSec)
@@ -76,6 +80,7 @@ export default function JamBoard({
         trackIndex,
         startTimeSec: snappedSec,
         durationSec,
+        instrument: instrumentStr,
       });
     },
     [onCreateClip, pxPerSec, numTracks, snapSec],
@@ -105,7 +110,7 @@ export default function JamBoard({
     return Math.max(30, Math.ceil(maxEnd + 5));
   }, [clips]);
 
-  const contentWidthPx = 48 + totalSec * pxPerSec;
+  const contentWidthPx = 64 + totalSec * pxPerSec;
 
   return (
     <div
@@ -123,17 +128,17 @@ export default function JamBoard({
           <div className="relative">
             <TimelineRuler
               pxPerSec={pxPerSec}
-              leftGutterPx={48}
+              leftGutterPx={64}
               heightPx={24}
               totalSec={totalSec}
             />
             <div
               className="absolute top-0 bottom-0"
               style={{
-                left: 48 + playheadSec * pxPerSec,
+                left: 64 + playheadSec * pxPerSec,
                 width: 1.5,
                 backgroundColor: "var(--destructive)",
-                boxShadow: "0 0 6px rgba(244,63,94,0.7)",
+                boxShadow: "0 0 6px var(--destructive)",
                 zIndex: 10,
               }}
             />
@@ -144,7 +149,7 @@ export default function JamBoard({
             clipsByTrack={clipsByTrack}
             onUpdateClip={onUpdateClip}
             onDeleteClip={onDeleteClip}
-            leftGutterPx={48}
+            leftGutterPx={64}
             rowHeightPx={56}
             snapSec={snapSec}
             totalSec={totalSec}
@@ -181,7 +186,7 @@ export default function JamBoard({
           }}
           aria-label={showInfo ? "Close Info" : "Open Info"}
         >
-          <span className="text-xl font-bold">{showInfo ? "→" : "←"}</span>
+          {showInfo ? <ChevronRight size={24} /> : <ChevronLeft size={24} />}
         </button>
 
         <div className="h-full w-full relative">

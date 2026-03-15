@@ -1,7 +1,7 @@
 import * as Tone from "tone";
 import { INSTRUMENTS } from "./instruments";
 
-export function createPlaybackEngine(recording) {
+export function createPlaybackEngine(recording, onEnd) {
   let instrument = null;
   let isReady = false;
   let isPlaying = false;
@@ -47,7 +47,7 @@ export function createPlaybackEngine(recording) {
         event.velocity,
         event.row,
         event.i,
-        event.len
+        event.len,
       );
     }, events);
 
@@ -61,6 +61,7 @@ export function createPlaybackEngine(recording) {
 
     Tone.Transport.scheduleOnce(() => {
       stop();
+      if (onEnd) onEnd();
     }, `+${duration}`);
   };
 

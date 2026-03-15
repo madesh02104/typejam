@@ -98,6 +98,7 @@ export default function Page() {
     trackIndex,
     startTimeSec,
     durationSec,
+    instrument,
   }) => {
     const newClip = {
       id: crypto.randomUUID(),
@@ -105,6 +106,10 @@ export default function Page() {
       trackIndex,
       startTimeSec,
       durationSec,
+      instrument:
+        instrument ||
+        recordingsById.current.get(recordingId)?.instrument ||
+        "piano",
       name:
         recordingsById.current.get(recordingId)?.name ||
         recordingsById.current.get(recordingId)?.instrument ||
@@ -349,10 +354,10 @@ export default function Page() {
       <div className="paper flex items-center gap-4 px-4 py-3 flex-shrink-0">
         <div className="flex-shrink-0 select-none">
           <h1
-            className="text-xl font-bold leading-none"
+            className="text-xl font-bold leading-none tracking-tight"
             style={{
               background:
-                "linear-gradient(135deg, rgb(6, 182, 212) 0%, rgb(124, 58, 237) 100%)",
+                "linear-gradient(135deg, var(--primary) 0%, rgb(0, 255, 170) 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               backgroundClip: "text",
@@ -410,13 +415,13 @@ export default function Page() {
           <button
             onClick={toggleRecording}
             disabled={!ready}
-            className="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0"
+            className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0"
             style={{
               backgroundColor: isRecording
                 ? "var(--destructive)"
-                : "transparent",
+                : "var(--muted)",
               border: `2px solid ${isRecording ? "var(--destructive)" : "var(--border)"}`,
-              boxShadow: isRecording ? "0 0 0 0 rgba(244,63,94,0.7)" : "none",
+              boxShadow: isRecording ? "0 0 12px rgba(255,59,48,0.4)" : "none",
               animation: isRecording
                 ? "pulse-record 1.1s ease-in-out infinite"
                 : "none",
@@ -426,7 +431,11 @@ export default function Page() {
             {isRecording ? (
               <span
                 className="block rounded-sm"
-                style={{ width: 12, height: 12, backgroundColor: "white" }}
+                style={{
+                  width: 14,
+                  height: 14,
+                  backgroundColor: "var(--destructive-foreground)",
+                }}
               />
             ) : (
               <span

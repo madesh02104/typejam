@@ -94,7 +94,6 @@ export default function InfoPanel() {
             </ul>
 
             <div className={styles.noteBox}>
-              <div className={styles.noteIcon}>i</div>
               <p>
                 Even though it is hard to produce professional grade music with
                 this, it will help a naive user to enjoy creating small musical
