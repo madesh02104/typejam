@@ -109,11 +109,16 @@ export function makeSampledInstrument(baseUrl, urls, options = {}) {
 
     const { sampler, vol, fx } = getSamplerForRow(row);
 
-    vol.volume.value = Tone.gainToDb(velocity ?? vel);
+    let finalVelocity = velocity ?? vel;
+    if (isDrums && row === "bot" && (i === 2 || i === 3)) {
+      finalVelocity *= 1.85;
+    }
+
+    vol.volume.value = Tone.gainToDb(finalVelocity);
     if (fx.length >= 1) fx[0].frequency.value = cutoff; // Filter
     if (fx.length >= 2) fx[1].wet.value = wet; // Reverb
 
-    return { sampler, velocity: velocity ?? vel };
+    return { sampler, velocity: finalVelocity };
   };
 
   return {
