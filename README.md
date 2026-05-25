@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# TypeJam
 
-## Getting Started
+TypeJam is a browser-based music creation studio. Play instruments with your keyboard, record takes, arrange clips on a timeline, and export a mixdown.
 
-First, run the development server:
+Live site: https://typejam.netlify.app/
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## What it does
+
+- Keyboard-mapped instruments with a consistent layout across rows
+- Live recording and clip-based arranging on the JamBoard
+- Playback engine that mixes multiple tracks
+- Export to audio using the Web Audio graph
+
+## Project structure
+
+```
+public/
+	instruments/           # Static instrument assets (non-audio)
+src/
+	app/                   # Next.js app routes and layout
+		globals.css          # Global styles and theme variables
+		layout.js            # App shell and metadata
+		page.js              # Main UI: instrument selection, recording, JamBoard
+	components/            # UI building blocks
+		InfoPanel.js         # How-it-works and instrument key mapping UI
+		JamBoard.js          # Timeline area and drag-and-drop surface
+		TrackArea.js         # Track lanes and clip rendering
+		RecordingsList.js    # Saved takes list and playback actions
+		TransportControls.js # Play, stop, export, snap, zoom controls
+	lib/                   # Audio engine and data helpers
+		instruments.js       # Instrument registry wired to samplers
+		samples.js           # Sample URL maps and CDN base paths
+		sampledInstrument.js # Sampler wiring, FX, and dynamic parameters
+		keys.js              # Keyboard-to-note mapping per row
+		recording.js          # Recording model and defaults
+		playback.js           # Single-recording playback engine
+		jamSession.js         # Multi-clip playback scheduler
+		storage.js            # Local persistence for recordings
+		utils.js              # Shared helpers
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Run locally
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+1. Install dependencies:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+	 ```bash
+	 npm install
+	 ```
 
-## Learn More
+2. Start the dev server:
 
-To learn more about Next.js, take a look at the following resources:
+	 ```bash
+	 npm run dev
+	 ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. Open http://localhost:3000
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Contributing
 
-## Deploy on Vercel
+See CONTRIBUTING.md for setup and contribution guidelines.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Instrument samples are fetched from a separate audio repository via a CDN. If an instrument is missing samples, it will not produce sound until those files are available.
