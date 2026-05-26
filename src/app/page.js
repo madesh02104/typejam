@@ -15,6 +15,7 @@ import RecordingsList from "../components/RecordingsList";
 import JamBoard from "../components/JamBoard";
 import TransportControls from "../components/TransportControls";
 import { createJamSession } from "../lib/jamSession";
+import { masterBus, monitorGain } from "../lib/audioBus";
 
 export default function Page() {
   const [selected, setSelected] = useState("piano");
@@ -164,6 +165,8 @@ export default function Page() {
   const handleDownload = async () => {
     if (clips.length === 0) return;
     setIsExporting(true);
+    let previousMonitorGain = null;
+    let recorder = null;
 
     try {
       if (Tone.context.state !== "running") await Tone.start();
@@ -172,8 +175,10 @@ export default function Page() {
       session.stop();
       setIsPlaying(false);
 
-      const recorder = new Tone.Recorder();
-      Tone.Destination.connect(recorder);
+      recorder = new Tone.Recorder();
+      masterBus.connect(recorder);
+      previousMonitorGain = monitorGain.gain.value;
+      monitorGain.gain.value = 0;
       recorder.start();
 
       let maxEndTime = 0;
@@ -193,8 +198,10 @@ export default function Page() {
       );
 
       const recording = await recorder.stop();
-      Tone.Destination.disconnect(recorder);
+      monitorGain.gain.value = previousMonitorGain;
+      masterBus.disconnect(recorder);
       recorder.dispose();
+      recorder = null;
 
       const url = URL.createObjectURL(recording);
       const a = document.createElement("a");
@@ -208,6 +215,13 @@ export default function Page() {
       console.error("Download failed:", error);
       alert("Download failed. Please try again.");
     } finally {
+      if (previousMonitorGain !== null) {
+        monitorGain.gain.value = previousMonitorGain;
+      }
+      if (recorder) {
+        masterBus.disconnect(recorder);
+        recorder.dispose();
+      }
       setIsExporting(false);
       const session = ensureJamSession();
       session.stop();
@@ -355,193 +369,214 @@ export default function Page() {
   }, [selected, ready, isRecording, recordingStartTime]);
 
   return (
-    <main className="p-3 h-screen w-full box-border flex flex-col gap-3 overflow-hidden">
-      <div className="paper flex items-center gap-4 px-4 py-3 flex-shrink-0">
-        <div className="flex-shrink-0 select-none">
-          <h1
-            className="text-xl font-bold leading-none tracking-tight"
-            style={{
-              background:
-                "linear-gradient(135deg, var(--primary) 0%, rgb(0, 255, 170) 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-            }}
-          >
-            TypeJam
-          </h1>
-          <p
-            className="text-xs mt-0.5"
-            style={{
-              color: "var(--muted-foreground)",
-              fontFamily: "var(--font-mono)",
-            }}
-          >
-            Jam music by typing
-          </p>
-        </div>
-
-        <div
-          className="w-px h-8 flex-shrink-0"
-          style={{ backgroundColor: "var(--border)" }}
-        />
-
-        <label className="flex items-center gap-2.5 flex-shrink-0">
-          <span
-            className="text-xs font-medium"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            Instrument
-          </span>
-          <select
-            value={selected}
-            onChange={(e) => setSelected(e.target.value)}
-            className="px-2.5 py-1.5 text-sm font-semibold rounded-md"
-            style={{
-              backgroundColor: "var(--input)",
-              border: "1px solid var(--border)",
-              color: "var(--foreground)",
-            }}
-          >
-            <option value="piano">Piano</option>
-            <option value="guitar">Guitar</option>
-            <option value="bass">Bass</option>
-            <option value="violin">Violin</option>
-            <option value="drums">Drums</option>
-          </select>
-        </label>
-
-        <div
-          className="w-px h-8 flex-shrink-0"
-          style={{ backgroundColor: "var(--border)" }}
-        />
-
-        <div className="flex items-center gap-2.5 flex-shrink-0">
-          <button
-            onClick={toggleRecording}
-            disabled={!ready}
-            className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0"
-            style={{
-              backgroundColor: isRecording
-                ? "var(--destructive)"
-                : "var(--muted)",
-              border: `2px solid ${isRecording ? "var(--destructive)" : "var(--border)"}`,
-              boxShadow: isRecording ? "0 0 12px rgba(255,59,48,0.4)" : "none",
-              animation: isRecording
-                ? "pulse-record 1.1s ease-in-out infinite"
-                : "none",
-            }}
-            title={isRecording ? "Stop Recording" : "Start Recording"}
-          >
-            {isRecording ? (
-              <span
-                className="block rounded-sm"
-                style={{
-                  width: 14,
-                  height: 14,
-                  backgroundColor: "var(--destructive-foreground)",
-                }}
-              />
-            ) : (
-              <span
-                className="block rounded-full"
-                style={{
-                  width: 14,
-                  height: 14,
-                  backgroundColor: "var(--destructive)",
-                }}
-              />
-            )}
-          </button>
-          <span
-            className="text-xs font-semibold tracking-widest select-none"
-            style={{
-              color: isRecording
-                ? "var(--destructive)"
-                : "var(--muted-foreground)",
-              fontFamily: "var(--font-mono)",
-            }}
-          >
-            {isRecording ? "REC ●" : "REC"}
-          </span>
-        </div>
-
-        <div
-          className="w-px h-8 flex-shrink-0"
-          style={{ backgroundColor: "var(--border)" }}
-        />
-
-        <span
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0"
-          style={{
-            backgroundColor: ready
-              ? "rgba(16,185,129,0.12)"
-              : "rgba(245,158,11,0.12)",
-            color: ready ? "rgb(52,211,153)" : "rgb(251,191,36)",
-            border: `1px solid ${ready ? "rgba(16,185,129,0.3)" : "rgba(245,158,11,0.3)"}`,
-          }}
-        >
-          <span
-            className="w-1.5 h-1.5 rounded-full inline-block"
-            style={{
-              backgroundColor: ready ? "rgb(52,211,153)" : "rgb(251,191,36)",
-              animation: !ready ? "dot-blink 1s ease-in-out infinite" : "none",
-            }}
-          />
-          {ready ? "Ready" : "Loading…"}
-        </span>
-      </div>
-
-      <div className="flex-1 grid grid-cols-[340px_1fr] gap-3 min-h-0">
-        <div className="overflow-auto paper p-3 min-h-0">
-          <RecordingsList
-            recordings={recordings}
-            onDelete={handleDeleteRecording}
-            onRename={handleRenameRecording}
-            onClearAll={handleClearAllRecordings}
-            currentInstrument={selected}
-          />
-        </div>
-        <div className="flex flex-col paper p-3 min-h-0 min-w-0">
-          <TransportControls
-            isPlaying={isPlaying}
-            onPlayPause={onPlayPause}
-            onStop={onStop}
-            pxPerSec={pxPerSec}
-            onChangePxPerSec={setPxPerSec}
-            snapSec={snapSec}
-            onChangeSnapSec={setSnapSec}
-            onDownload={handleDownload}
-          />
-          <div className="mt-2 flex-1 min-h-0 overflow-hidden rounded-md">
-            <JamBoard
-              clips={clips}
-              onCreateClip={handleCreateClip}
-              onUpdateClip={handleUpdateClip}
-              onDeleteClip={handleDeleteClip}
-              pxPerSec={pxPerSec}
-              numTracks={numTracks}
-              onAddTrack={() => setNumTracks((n) => n + 1)}
-              snapSec={snapSec}
-              isActive={isPlaying}
-            />
-          </div>
-        </div>
-      </div>
-      {isExporting && (
-        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center">
-          <div className="bg-card border border-border rounded-xl p-8 shadow-2xl flex flex-col items-center gap-4">
-            <Loader2 className="w-10 h-10 animate-spin text-primary" />
-            <h3 className="text-xl font-bold text-foreground">
-              Downloading Jam...
-            </h3>
-            <p className="text-muted-foreground text-sm max-w-xs text-center">
-              Please wait while your jam session is being rendered to an audio
-              file...
+    <>
+      <main className="app-shell p-3 h-screen w-full box-border flex flex-col gap-3 overflow-hidden">
+        <div className="paper flex items-center gap-4 px-4 py-3 flex-shrink-0">
+          <div className="flex-shrink-0 select-none">
+            <h1
+              className="text-xl font-bold leading-none tracking-tight"
+              style={{
+                background:
+                  "linear-gradient(135deg, var(--primary) 0%, rgb(0, 255, 170) 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
+              TypeJam
+            </h1>
+            <p
+              className="text-xs mt-0.5"
+              style={{
+                color: "var(--muted-foreground)",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              Jam music by typing
             </p>
           </div>
+
+          <div
+            className="w-px h-8 flex-shrink-0"
+            style={{ backgroundColor: "var(--border)" }}
+          />
+
+          <label className="flex items-center gap-2.5 flex-shrink-0">
+            <span
+              className="text-xs font-medium"
+              style={{ color: "var(--muted-foreground)" }}
+            >
+              Instrument
+            </span>
+            <select
+              value={selected}
+              onChange={(e) => setSelected(e.target.value)}
+              className="px-2.5 py-1.5 text-sm font-semibold rounded-md"
+              style={{
+                backgroundColor: "var(--input)",
+                border: "1px solid var(--border)",
+                color: "var(--foreground)",
+              }}
+            >
+              <option value="piano">Piano</option>
+              <option value="guitar">Guitar</option>
+              <option value="bass">Bass</option>
+              <option value="violin">Violin</option>
+              <option value="drums">Drums</option>
+            </select>
+          </label>
+
+          <div
+            className="w-px h-8 flex-shrink-0"
+            style={{ backgroundColor: "var(--border)" }}
+          />
+
+          <div className="flex items-center gap-2.5 flex-shrink-0">
+            <button
+              onClick={toggleRecording}
+              disabled={!ready}
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0"
+              style={{
+                backgroundColor: isRecording
+                  ? "var(--destructive)"
+                  : "var(--muted)",
+                border: `2px solid ${isRecording ? "var(--destructive)" : "var(--border)"}`,
+                boxShadow: isRecording
+                  ? "0 0 12px rgba(255,59,48,0.4)"
+                  : "none",
+                animation: isRecording
+                  ? "pulse-record 1.1s ease-in-out infinite"
+                  : "none",
+              }}
+              title={isRecording ? "Stop Recording" : "Start Recording"}
+            >
+              {isRecording ? (
+                <span
+                  className="block rounded-sm"
+                  style={{
+                    width: 14,
+                    height: 14,
+                    backgroundColor: "var(--destructive-foreground)",
+                  }}
+                />
+              ) : (
+                <span
+                  className="block rounded-full"
+                  style={{
+                    width: 14,
+                    height: 14,
+                    backgroundColor: "var(--destructive)",
+                  }}
+                />
+              )}
+            </button>
+            <span
+              className="text-xs font-semibold tracking-widest select-none"
+              style={{
+                color: isRecording
+                  ? "var(--destructive)"
+                  : "var(--muted-foreground)",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              {isRecording ? "REC ●" : "REC"}
+            </span>
+          </div>
+
+          <div
+            className="w-px h-8 flex-shrink-0"
+            style={{ backgroundColor: "var(--border)" }}
+          />
+
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0"
+            style={{
+              backgroundColor: ready
+                ? "rgba(16,185,129,0.12)"
+                : "rgba(245,158,11,0.12)",
+              color: ready ? "rgb(52,211,153)" : "rgb(251,191,36)",
+              border: `1px solid ${ready ? "rgba(16,185,129,0.3)" : "rgba(245,158,11,0.3)"}`,
+            }}
+          >
+            <span
+              className="w-1.5 h-1.5 rounded-full inline-block"
+              style={{
+                backgroundColor: ready ? "rgb(52,211,153)" : "rgb(251,191,36)",
+                animation: !ready
+                  ? "dot-blink 1s ease-in-out infinite"
+                  : "none",
+              }}
+            />
+            {ready ? "Ready" : "Loading…"}
+          </span>
         </div>
-      )}
-    </main>
+
+        <div className="flex-1 grid grid-cols-[340px_1fr] gap-3 min-h-0">
+          <div className="overflow-auto paper p-3 min-h-0">
+            <RecordingsList
+              recordings={recordings}
+              onDelete={handleDeleteRecording}
+              onRename={handleRenameRecording}
+              onClearAll={handleClearAllRecordings}
+              currentInstrument={selected}
+            />
+          </div>
+          <div className="flex flex-col paper p-3 min-h-0 min-w-0">
+            <TransportControls
+              isPlaying={isPlaying}
+              onPlayPause={onPlayPause}
+              onStop={onStop}
+              pxPerSec={pxPerSec}
+              onChangePxPerSec={setPxPerSec}
+              snapSec={snapSec}
+              onChangeSnapSec={setSnapSec}
+              onDownload={handleDownload}
+            />
+            <div className="mt-2 flex-1 min-h-0 overflow-hidden rounded-md">
+              <JamBoard
+                clips={clips}
+                onCreateClip={handleCreateClip}
+                onUpdateClip={handleUpdateClip}
+                onDeleteClip={handleDeleteClip}
+                pxPerSec={pxPerSec}
+                numTracks={numTracks}
+                onAddTrack={() => setNumTracks((n) => n + 1)}
+                snapSec={snapSec}
+                isActive={isPlaying}
+              />
+            </div>
+          </div>
+        </div>
+        {isExporting && (
+          <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center">
+            <div className="bg-card border border-border rounded-xl p-8 shadow-2xl flex flex-col items-center gap-4">
+              <Loader2 className="w-10 h-10 animate-spin text-primary" />
+              <h3 className="text-xl font-bold text-foreground">
+                Downloading Jam...
+              </h3>
+              <p className="text-muted-foreground text-sm max-w-xs text-center">
+                Please wait while your jam session is being rendered to an audio
+                file...
+              </p>
+            </div>
+          </div>
+        )}
+      </main>
+      <div
+        className="screen-lock fixed inset-0 z-[60] bg-background/95 backdrop-blur-sm flex items-center justify-center"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="bg-card border border-border rounded-2xl p-8 shadow-2xl w-[min(92vw,420px)]">
+          <h2 className="text-2xl font-bold text-foreground text-center">
+            TypeJam
+          </h2>
+          <p className="text-muted-foreground text-sm text-center mt-3">
+            TypeJam is only available on bigger screens. Kindly use your laptop
+            or PC.
+          </p>
+        </div>
+      </div>
+    </>
   );
 }
