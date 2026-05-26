@@ -15,7 +15,7 @@ import RecordingsList from "../components/RecordingsList";
 import JamBoard from "../components/JamBoard";
 import TransportControls from "../components/TransportControls";
 import { createJamSession } from "../lib/jamSession";
-import { masterBus, monitorGain } from "../lib/audioBus";
+import { getAudioBus } from "../lib/audioBus";
 
 export default function Page() {
   const [selected, setSelected] = useState("piano");
@@ -167,6 +167,11 @@ export default function Page() {
     setIsExporting(true);
     let previousMonitorGain = null;
     let recorder = null;
+    const bus = getAudioBus();
+    if (!bus) {
+      setIsExporting(false);
+      return;
+    }
 
     try {
       if (Tone.context.state !== "running") await Tone.start();
@@ -176,9 +181,9 @@ export default function Page() {
       setIsPlaying(false);
 
       recorder = new Tone.Recorder();
-      masterBus.connect(recorder);
-      previousMonitorGain = monitorGain.gain.value;
-      monitorGain.gain.value = 0;
+      bus.masterBus.connect(recorder);
+      previousMonitorGain = bus.monitorGain.gain.value;
+      bus.monitorGain.gain.value = 0;
       recorder.start();
 
       let maxEndTime = 0;
@@ -198,8 +203,8 @@ export default function Page() {
       );
 
       const recording = await recorder.stop();
-      monitorGain.gain.value = previousMonitorGain;
-      masterBus.disconnect(recorder);
+      bus.monitorGain.gain.value = previousMonitorGain;
+      bus.masterBus.disconnect(recorder);
       recorder.dispose();
       recorder = null;
 
@@ -216,10 +221,10 @@ export default function Page() {
       alert("Download failed. Please try again.");
     } finally {
       if (previousMonitorGain !== null) {
-        monitorGain.gain.value = previousMonitorGain;
+        bus.monitorGain.gain.value = previousMonitorGain;
       }
       if (recorder) {
-        masterBus.disconnect(recorder);
+        bus.masterBus.disconnect(recorder);
         recorder.dispose();
       }
       setIsExporting(false);
@@ -572,8 +577,8 @@ export default function Page() {
             TypeJam
           </h2>
           <p className="text-muted-foreground text-sm text-center mt-3">
-            TypeJam is only available on bigger screens. Kindly use your laptop
-            or PC.
+            TypeJam is not available on smaller screens yet! Kindly use your
+            laptop or PC.
           </p>
         </div>
       </div>

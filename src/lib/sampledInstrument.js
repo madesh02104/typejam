@@ -1,5 +1,5 @@
 import * as Tone from "tone";
-import { masterBus } from "./audioBus";
+import { getAudioBus } from "./audioBus";
 
 export function makeSampledInstrument(baseUrl, urls, options = {}) {
   const transpose = options.transpose ?? 0;
@@ -49,10 +49,12 @@ export function makeSampledInstrument(baseUrl, urls, options = {}) {
   const botLim = new Tone.Limiter(-0.1);
 
   const chain = (n, vol, fx, comp, lim) => {
+    const bus = getAudioBus();
+    const output = bus?.masterBus ?? Tone.Destination;
     if (fx.length) {
-      n.chain(vol, ...fx, comp, lim, masterBus);
+      n.chain(vol, ...fx, comp, lim, output);
     } else {
-      n.chain(vol, comp, lim, masterBus);
+      n.chain(vol, comp, lim, output);
     }
   };
   chain(top, topVol, topFX, topComp, topLim);
