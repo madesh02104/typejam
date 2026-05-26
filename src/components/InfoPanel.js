@@ -56,6 +56,30 @@ export default function InfoPanel() {
               understand the notes.
             </p>
 
+            <h3>Demo video</h3>
+            <div
+              style={{
+                position: "relative",
+                paddingBottom: "56.25%",
+                height: 0,
+                marginBottom: "16px",
+              }}
+            >
+              <iframe
+                src="https://www.loom.com/embed/649501b7e11a428a873a7fa71b199140"
+                title="TypeJam demo"
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                }}
+                frameBorder="0"
+                allowFullScreen
+              />
+            </div>
+
             <h3>How Notes are Mapped</h3>
             <p>
               TypeJam organizes musical <strong>pitch</strong> (how high or low

@@ -3,6 +3,7 @@
 TypeJam is a browser-based music creation studio. Play instruments with your keyboard, record takes, arrange clips on a timeline, and export a mixdown.
 
 Live site: https://typejam.netlify.app/
+Demo video: https://www.loom.com/share/649501b7e11a428a873a7fa71b199140
 
 ## What it does
 
