@@ -13,7 +13,7 @@ export default function InfoPanel() {
   const tabs = [
     { id: "how-it-works", label: "How it works" },
     { id: "instruments", label: "Instruments" },
-    // { id: "contribute", label: "Contribute" },
+    { id: "contribute", label: "Contribute" },
   ];
 
   const getNoteLabel = (inst, key) => {
@@ -203,38 +203,38 @@ export default function InfoPanel() {
           </div>
         );
 
-      //   case "contribute":
-      //     return (
-      //       <div className={styles.content}>
-      //         <h2>Contribute to TypeJam</h2>
-      //         <p>
-      //           TypeJam is open-source and welcomes contributions! Whether
-      //           it&apos;s bug fixes, new features, or improvements, your help
-      //           matters.
-      //         </p>
-      //         <p>
-      //           <strong>Get involved:</strong>
-      //         </p>
-      //         <ul>
-      //           <li>
-      //             <a
-      //               href="https://github.com/madesh02104/typejam"
-      //               target="_blank"
-      //               rel="noopener noreferrer"
-      //             >
-      //               Visit the GitHub repository
-      //             </a>
-      //           </li>
-      //           <li>Report issues and suggest features</li>
-      //           <li>Submit pull requests with improvements</li>
-      //           <li>Help with documentation</li>
-      //         </ul>
-      //         <p>
-      //           Every contribution helps make TypeJam better for everyone. Thank
-      //           you! ♪
-      //         </p>
-      //       </div>
-      //     );
+      case "contribute":
+        return (
+          <div className={styles.content}>
+            <h2>Contribute to TypeJam</h2>
+            <p>
+              TypeJam is open-source and welcomes contributions! Whether
+              it&apos;s bug fixes, new features, or improvements, your help
+              matters.
+            </p>
+            <p>
+              <strong>Get involved:</strong>
+            </p>
+            <ul>
+              <li>
+                <a
+                  href="https://github.com/madesh02104/typejam"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Visit the GitHub repository
+                </a>
+              </li>
+              <li>Report issues and suggest features</li>
+              <li>Submit pull requests with improvements</li>
+              <li>Help with documentation</li>
+            </ul>
+            <p>
+              Every contribution helps make TypeJam better for everyone. Thank
+              you! ♪
+            </p>
+          </div>
+        );
 
       default:
         return null;
