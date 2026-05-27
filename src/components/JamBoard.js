@@ -28,15 +28,29 @@ export default function JamBoard({
     const loop = () => {
       try {
         const { Transport } = require("tone");
-        if (isActive) {
-          setPlayheadSec(Transport.seconds || 0);
+        const sec = Transport.seconds || 0;
+        setPlayheadSec(sec);
+
+        // Auto-scroll to follow the playhead
+        if (scrollRef.current) {
+          const el = scrollRef.current;
+          const playheadPx = 64 + sec * pxPerSec;
+
+          if (isActive) {
+            // During playback, keep playhead at ~30% from left edge for smooth tracking
+            const targetScroll = Math.max(0, playheadPx - el.clientWidth * 0.3);
+            el.scrollLeft = targetScroll;
+          } else if (sec === 0 && el.scrollLeft > 0) {
+            // On stop/reset, scroll back to start
+            el.scrollLeft = 0;
+          }
         }
       } catch {}
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [isActive]);
+  }, [isActive, pxPerSec]);
 
   const handleOpenInfo = () => {
     setShowInfo(true);
